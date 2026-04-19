@@ -18,28 +18,23 @@ print(json.loads(Path(sys.argv[1]).read_text())["version"])
 PY
 )"
 
-ARCHIVE_BASENAME="spec-prosecutor-v${VERSION}-macos.tar.gz"
-ARCHIVE_PATH="$ROOT_DIR/dist/release/$ARCHIVE_BASENAME"
-CHECKSUM_PATH="$ARCHIVE_PATH.sha256"
 FORMULA_TEMPLATE="$ROOT_DIR/Formula/spec-prosecutor.rb.template"
 FORMULA_OUTPUT_DIR="$ROOT_DIR/dist/release/homebrew"
 FORMULA_OUTPUT_PATH="$FORMULA_OUTPUT_DIR/spec-prosecutor.rb"
-URL="https://github.com/${OWNER}/${REPO}/releases/download/v${VERSION}/${ARCHIVE_BASENAME}"
+TAG="v${VERSION}"
+ARCHIVE_BASENAME="${TAG}.tar.gz"
+URL="https://github.com/${OWNER}/${REPO}/archive/refs/tags/${ARCHIVE_BASENAME}"
 HOMEPAGE="https://github.com/${OWNER}/${REPO}"
+TMP_DIR="$(mktemp -d)"
+ARCHIVE_PATH="$TMP_DIR/$ARCHIVE_BASENAME"
 
-[[ -f "$ARCHIVE_PATH" ]] || {
-  echo "Missing release archive: $ARCHIVE_PATH" >&2
-  echo "Run: bash scripts/package-release.sh" >&2
-  exit 1
+cleanup() {
+  rm -rf "$TMP_DIR"
 }
+trap cleanup EXIT
 
-[[ -f "$CHECKSUM_PATH" ]] || {
-  echo "Missing checksum file: $CHECKSUM_PATH" >&2
-  echo "Run: bash scripts/package-release.sh" >&2
-  exit 1
-}
-
-SHA256="$(tr -d '[:space:]' < "$CHECKSUM_PATH")"
+curl -fsSL "$URL" -o "$ARCHIVE_PATH"
+SHA256="$(shasum -a 256 "$ARCHIVE_PATH" | awk '{print $1}')"
 mkdir -p "$FORMULA_OUTPUT_DIR"
 
 python3 - <<'PY' "$FORMULA_TEMPLATE" "$FORMULA_OUTPUT_PATH" "$HOMEPAGE" "$URL" "$SHA256" "$VERSION"

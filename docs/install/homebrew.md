@@ -1,21 +1,20 @@
 # Homebrew Install
 
 `Spec Prosecutor` can be distributed on macOS through a Homebrew tap.
+The recommended formula source is the GitHub tag archive for the main repository.
 
 ## Target Install Flow
 
 Once the release assets and tap are published, the install path will be:
 
 ```bash
-brew tap <owner>/tap
+brew tap zzl92105/tap
 brew install spec-prosecutor
 spec-prosecutor doctor
 spec-prosecutor init -g --mode off
 spec-prosecutor init -g --codex --mode off
 spec-prosecutor init --agent cursor --mode off --cursor-workspace /path/to/project
 ```
-
-`<owner>/tap` is still a placeholder here. Replace it with the real published tap.
 
 For phrase-gated auto mode:
 
@@ -25,21 +24,25 @@ spec-prosecutor init -g --codex --mode on
 spec-prosecutor init --agent cursor --mode on --cursor-workspace /path/to/project
 ```
 
-## Release Assets Required
+## Tag Required
 
-Homebrew distribution expects:
+Before rendering the formula:
 
-- a versioned macOS release archive
-- a `sha256` checksum for that archive
-- a Homebrew formula pointing at the release URL
+- push the source repository commit
+- create and push the version tag, for example `v0.1.0`
+- make sure the tag archive URL is reachable on GitHub
 
-This repository includes helpers for all three:
+The formula renderer downloads the tag archive directly and computes the `sha256` for you.
+
+## Optional Release Archive
+
+This repository still includes release packaging helpers if you also want a standalone macOS archive:
 
 - `scripts/package-release.sh`
 - `scripts/render-homebrew-formula.sh`
 - `Formula/spec-prosecutor.rb.template`
 
-## Packaging
+## Optional Packaging
 
 Build the macOS release archive:
 
@@ -54,10 +57,10 @@ This generates files under `dist/release/`, including:
 
 ## Formula Rendering
 
-After the GitHub repository and release tag are known, render the formula with:
+After the GitHub repository and tag are pushed, render the formula with:
 
 ```bash
-bash scripts/render-homebrew-formula.sh <owner> <repo>
+bash scripts/render-homebrew-formula.sh zzl92105 spec-prosecutor
 ```
 
 That writes:
@@ -67,7 +70,7 @@ That writes:
 The rendered formula points to:
 
 ```text
-https://github.com/<owner>/<repo>/releases/download/v<version>/spec-prosecutor-v<version>-macos.tar.gz
+https://github.com/zzl92105/spec-prosecutor/archive/refs/tags/v<version>.tar.gz
 ```
 
 ## Tap Publishing
@@ -75,7 +78,7 @@ https://github.com/<owner>/<repo>/releases/download/v<version>/spec-prosecutor-v
 Recommended structure:
 
 ```text
-<owner>/homebrew-tap
+zzl92105/homebrew-tap
   Formula/
     spec-prosecutor.rb
 ```
@@ -83,6 +86,6 @@ Recommended structure:
 Then users can install with:
 
 ```bash
-brew tap <owner>/tap
+brew tap zzl92105/tap
 brew install spec-prosecutor
 ```

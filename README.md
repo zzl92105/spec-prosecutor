@@ -17,11 +17,9 @@ It reviews one explicitly provided Markdown PRD and returns a structured prosecu
 Homebrew install after the tap is published:
 
 ```bash
-brew tap <owner>/tap
+brew tap zzl92105/tap
 brew install spec-prosecutor
 ```
-
-The tap name is still a placeholder here. Replace `<owner>/tap` with the real published tap before using it.
 
 Check the installation:
 
@@ -165,11 +163,10 @@ Core references:
 
 ## Homebrew Packaging
 
-This repository already includes the assets needed to prepare a Homebrew release:
+This repository already includes the assets needed to prepare a Homebrew formula from a pushed Git tag:
 
 ```bash
-bash scripts/package-release.sh
-bash scripts/render-homebrew-formula.sh <owner> <repo>
+bash scripts/render-homebrew-formula.sh zzl92105 spec-prosecutor
 ```
 
 See [docs/install/homebrew.md](docs/install/homebrew.md).
