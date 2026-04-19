@@ -16,6 +16,10 @@ ROOT_DIR="$(cd "$(dirname "$SELF_PATH")/.." && pwd)"
 DEFAULT_MODE="off"
 DEFAULT_CURSOR_WORKSPACE="$PWD"
 TRIGGER="启动sp"
+CLI_INSTALL_ROOT="${HOME}/.local/share/spec-prosecutor"
+CLI_BIN_DIR="${HOME}/.local/bin"
+CLI_BIN_TARGET="${CLI_BIN_DIR}/spec-prosecutor"
+CLI_TARGET_ROOT="${CLI_INSTALL_ROOT}/repo"
 VERSION="$(python3 - <<'PY' "$ROOT_DIR/.codex-plugin/plugin.json"
 import json
 import sys
@@ -33,8 +37,8 @@ Usage:
   spec-prosecutor add [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--cursor-workspace PATH]
   spec-prosecutor on [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
   spec-prosecutor off [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
-  spec-prosecutor uninstall [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
-  spec-prosecutor remove [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor uninstall [--cli] [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor remove [--cli] [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
   spec-prosecutor export [off|on]
   spec-prosecutor doctor
   spec-prosecutor status
@@ -54,13 +58,14 @@ Commands:
   version    Print the installed Spec Prosecutor version.
 
 Examples:
+  bash install.sh --codex --mode on       # CLI + Codex
   spec-prosecutor init -g                     # Claude Code
   spec-prosecutor add -g --mode on
   spec-prosecutor on --codex
   spec-prosecutor 开启 --agent cursor --cursor-workspace /path/to/project
   spec-prosecutor init -g --codex            # Codex
   spec-prosecutor init --agent cursor --cursor-workspace /path/to/project
-  spec-prosecutor remove -g
+  spec-prosecutor remove --codex --cli
 EOF
 }
 
@@ -194,14 +199,10 @@ PY
 
 install_codex() {
   local mode="$1"
-  local dest
-  local marketplace
-  dest="$(resolve_codex_plugin_dir)"
-  marketplace="$(resolve_codex_marketplace_path)"
-  bash "$ROOT_DIR/scripts/export-plugin.sh" "$mode" >/dev/null
-  copy_dir "$ROOT_DIR/dist/codex/$mode/spec-prosecutor" "$dest"
-  merge_codex_marketplace "$marketplace" "$ROOT_DIR/docs/install/marketplace.entry.json" "$dest"
-  echo "Installed Codex plugin to $dest ($mode mode)"
+  local dest="$HOME/.agents/skills/spec-prosecutor"
+  bash "$ROOT_DIR/scripts/export-codex-skill.sh" "$mode" >/dev/null
+  copy_dir "$ROOT_DIR/dist/codex-skill/$mode/spec-prosecutor" "$dest"
+  echo "Installed Codex skill to $dest ($mode mode)"
 }
 
 install_claude() {
@@ -225,28 +226,13 @@ install_cursor() {
 }
 
 uninstall_codex() {
-  local dest
-  local marketplace
-  dest="$(resolve_codex_plugin_dir)"
-  marketplace="$(resolve_codex_marketplace_path)"
-  local removed=false
+  local dest="$HOME/.agents/skills/spec-prosecutor"
   if [[ -e "$dest" ]]; then
     rm -rf "$dest"
-    echo "Removed Codex plugin from $dest"
-    removed=true
+    echo "Removed Codex skill from $dest"
   else
-    echo "Codex plugin not installed at $dest"
+    echo "Codex skill not installed at $dest"
   fi
-
-  if [[ -e "$marketplace" ]] && rg -q '"name": "spec-prosecutor"' "$marketplace"; then
-    remove_codex_marketplace_entry "$marketplace"
-    echo "Removed Codex marketplace entry from $marketplace"
-    removed=true
-  else
-    echo "Codex marketplace entry not present in $marketplace"
-  fi
-
-  [[ "$removed" == true ]] || echo "No Codex uninstall changes were needed."
 }
 
 uninstall_claude() {
@@ -272,11 +258,23 @@ uninstall_cursor() {
   fi
 }
 
+uninstall_cli() {
+  if [[ -L "$CLI_BIN_TARGET" || -e "$CLI_BIN_TARGET" ]]; then
+    rm -f "$CLI_BIN_TARGET"
+    echo "Removed CLI binary from $CLI_BIN_TARGET"
+  else
+    echo "CLI binary not installed at $CLI_BIN_TARGET"
+  fi
+
+  if [[ -e "$CLI_TARGET_ROOT" ]]; then
+    rm -rf "$CLI_TARGET_ROOT"
+    echo "Removed CLI payload from $CLI_TARGET_ROOT"
+  else
+    echo "CLI payload not installed at $CLI_TARGET_ROOT"
+  fi
+}
+
 doctor() {
-  local codex_plugin_dir
-  local codex_marketplace
-  codex_plugin_dir="$(resolve_codex_plugin_dir)"
-  codex_marketplace="$(resolve_codex_marketplace_path)"
   cat <<EOF
 spec-prosecutor doctor
 
@@ -284,8 +282,8 @@ Version:
   $VERSION
 
 Install targets:
-  Codex:       $codex_plugin_dir
-  Marketplace: $codex_marketplace
+  CLI:         $CLI_BIN_TARGET
+  Codex:       $HOME/.agents/skills/spec-prosecutor
   Claude Code: $HOME/.claude/skills/spec-prosecutor
   Cursor:      <workspace>/.cursor/rules/spec-prosecutor.mdc
 
@@ -294,11 +292,6 @@ Trigger phrase for on mode:
 
 Supported agents:
   claude-code, codex, cursor
-
-Optional Codex env overrides:
-  CODEX_PLUGIN_DIR
-  CODEX_PLUGIN_ROOT
-  CODEX_MARKETPLACE_PATH
 EOF
 }
 
@@ -394,11 +387,13 @@ case "$command" in
     TARGET_CODEX=false
     TARGET_CLAUDE=false
     TARGET_CURSOR=false
+    TARGET_CLI=false
     GLOBAL_TARGET=false
     CURSOR_WORKSPACE="$DEFAULT_CURSOR_WORKSPACE"
     while [[ $# -gt 0 ]]; do
       case "$1" in
-        --all) TARGET_ALL=true ;;
+        --all) TARGET_ALL=true; TARGET_CLI=true ;;
+        --cli) TARGET_CLI=true ;;
         -g|--global) GLOBAL_TARGET=true ;;
         --codex) TARGET_CODEX=true ;;
         --claude-code) TARGET_CLAUDE=true ;;
@@ -426,6 +421,7 @@ case "$command" in
     [[ "$TARGET_CODEX" == true ]] && uninstall_codex
     [[ "$TARGET_CLAUDE" == true ]] && uninstall_claude
     [[ "$TARGET_CURSOR" == true ]] && uninstall_cursor "$CURSOR_WORKSPACE"
+    [[ "$TARGET_CLI" == true ]] && uninstall_cli
     echo "Spec Prosecutor uninstall complete."
     ;;
   export)

@@ -19,31 +19,18 @@ Recommended macOS flow:
 
 Codex local install:
 
-1. Export the plugin payload:
-   bash "$ROOT_DIR/scripts/export-plugin.sh" off
-   bash "$ROOT_DIR/scripts/export-plugin.sh" on
+1. Export the Codex skill payload:
+   bash "$ROOT_DIR/scripts/export-codex-skill.sh" off
+   bash "$ROOT_DIR/scripts/export-codex-skill.sh" on
 
-2. Copy the exported plugin to your preferred local plugin directory,
-   for example:
-   ~/plugins/spec-prosecutor
+2. Copy the exported skill to:
+   ~/.agents/skills/spec-prosecutor
 
    Choose one:
-   - $ROOT_DIR/dist/codex/off/spec-prosecutor
-   - $ROOT_DIR/dist/codex/on/spec-prosecutor
+   - $ROOT_DIR/dist/codex-skill/off/spec-prosecutor
+   - $ROOT_DIR/dist/codex-skill/on/spec-prosecutor
 
-3. Merge this entry into ~/.agents/plugins/marketplace.json:
-   $ROOT_DIR/docs/install/marketplace.entry.json
-
-   Replace source.path with the actual absolute plugin directory you chose.
-
-   If the marketplace file does not exist yet, create:
-   {
-     "name": "local-plugins",
-     "interface": { "displayName": "Local Plugins" },
-     "plugins": []
-   }
-
-4. Restart or reload Codex so the marketplace is refreshed.
+3. Start a new Codex session so the skill list is refreshed.
 
    On mode trigger phrase:
    启动sp

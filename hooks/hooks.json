@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" user-prompt-gate",
+            "command": "\"${CODEX_PLUGIN_ROOT}/hooks/run-hook.cmd\" user-prompt-gate",
             "async": false
           }
         ]

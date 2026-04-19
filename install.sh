@@ -12,6 +12,7 @@ INSTALL_ROOT="${HOME}/.local/share/spec-prosecutor"
 BIN_DIR="${HOME}/.local/bin"
 TARGET_ROOT="${INSTALL_ROOT}/repo"
 BIN_TARGET="${BIN_DIR}/spec-prosecutor"
+INIT_ARGS=("$@")
 
 mkdir -p "$INSTALL_ROOT" "$BIN_DIR"
 rm -rf "$TARGET_ROOT"
@@ -51,4 +52,9 @@ Next steps:
   spec-prosecutor add -g --codex
   spec-prosecutor add --agent cursor --cursor-workspace /path/to/project
   spec-prosecutor add -g --mode on
+  bash install.sh --codex --mode on
 EOF
+
+if [[ ${#INIT_ARGS[@]} -gt 0 ]]; then
+  SP_SKIP_VALIDATE_REPO=1 "$BIN_TARGET" init "${INIT_ARGS[@]}"
+fi

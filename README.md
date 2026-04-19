@@ -30,6 +30,14 @@ spec-prosecutor doctor
 spec-prosecutor version
 ```
 
+Single-command install for CLI plus selected hosts:
+
+```bash
+bash install.sh --codex --mode on
+bash install.sh --claude-code --mode on
+bash install.sh --codex --claude-code --mode on
+```
+
 Install into Claude Code, Codex, and Cursor:
 
 ```bash
@@ -44,10 +52,9 @@ Phrase-gated auto mode:
 spec-prosecutor add -g --mode on          # Claude Code
 spec-prosecutor add -g --codex --mode on  # Codex
 spec-prosecutor add --agent cursor --mode on --cursor-workspace /path/to/project
-
-After Codex installation, restart or reload Codex so the new plugin is included in the next session's skill list.
-If you install manually, set the Codex marketplace entry `source.path` to the actual absolute plugin directory on that machine.
 ```
+
+After Codex installation, start a new Codex session so the new skill is included in the next session's skill list.
 
 Natural mode switching:
 
@@ -66,6 +73,8 @@ Uninstall:
 ```bash
 spec-prosecutor remove -g
 spec-prosecutor remove --codex
+spec-prosecutor remove --codex --claude-code --cli
+spec-prosecutor remove --all --cli
 spec-prosecutor remove --agent cursor --cursor-workspace /path/to/project
 ```
 
@@ -113,6 +122,10 @@ Default scope:
 - do not expand to unrelated files unless the user asks
 - 默认一次只审一份用户显式提供的 Markdown PRD
 - 除非用户明确扩展范围，否则不要扫描无关文件
+
+For Codex CLI, the local install target is:
+
+- `~/.agents/skills/spec-prosecutor/`
 
 ## Modes
 

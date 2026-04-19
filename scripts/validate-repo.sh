@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STALE_PATH_PATTERN="core/contract\\.md|core/checklists\\.md|core/report-template\\.md|templates/report\\.md|adapters/claude-code/skills/spec-prosecutor/SKILL\\.md|adapters/codex/spec-prosecutor\\.md|adapters/cursor/spec-prosecutor\\.mdc|docs/core/"
 
 required_files=(
   "README.md"
@@ -53,18 +54,19 @@ for path in "${required_files[@]}"; do
   fi
 done
 
-if (cd "$ROOT_DIR" && \
-  rg -n "core/contract\\.md|core/checklists\\.md|core/report-template\\.md|templates/report\\.md|adapters/claude-code/skills/spec-prosecutor/SKILL\\.md|adapters/codex/spec-prosecutor\\.md|adapters/cursor/spec-prosecutor\\.mdc|docs/core/" \
-  . \
-  --glob '!dist/**' \
-  --glob '!scripts/validate-repo.sh' \
-  >/dev/null 2>&1); then
+if command -v rg >/dev/null 2>&1; then
+  stale_path_scan() {
+    (cd "$ROOT_DIR" && rg -n "$STALE_PATH_PATTERN" . --glob '!dist/**' --glob '!scripts/validate-repo.sh')
+  }
+else
+  stale_path_scan() {
+    (cd "$ROOT_DIR" && grep -R -n -E "$STALE_PATH_PATTERN" . --exclude-dir=dist --exclude=scripts/validate-repo.sh)
+  }
+fi
+
+if stale_path_scan >/dev/null 2>&1; then
   echo "Found stale path references that should have been migrated." >&2
-  (cd "$ROOT_DIR" && \
-    rg -n "core/contract\\.md|core/checklists\\.md|core/report-template\\.md|templates/report\\.md|adapters/claude-code/skills/spec-prosecutor/SKILL\\.md|adapters/codex/spec-prosecutor\\.md|adapters/cursor/spec-prosecutor\\.mdc|docs/core/" \
-    . \
-    --glob '!dist/**' \
-    --glob '!scripts/validate-repo.sh') || true
+  stale_path_scan || true
   exit 1
 fi
 

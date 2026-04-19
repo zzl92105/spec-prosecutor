@@ -11,6 +11,14 @@ bash install.sh
 spec-prosecutor doctor
 ```
 
+You can also install the CLI and selected hosts in one step:
+
+```bash
+bash install.sh --codex --mode on
+bash install.sh --claude-code --mode on
+bash install.sh --codex --claude-code --mode on
+```
+
 Then initialize the targets you want:
 
 ```bash
@@ -39,6 +47,8 @@ To remove them again:
 ```bash
 spec-prosecutor remove -g
 spec-prosecutor remove --codex
+spec-prosecutor remove --codex --claude-code --cli
+spec-prosecutor remove --all --cli
 spec-prosecutor remove --agent cursor --cursor-workspace /path/to/project
 ```
 
@@ -46,8 +56,6 @@ spec-prosecutor remove --agent cursor --cursor-workspace /path/to/project
 
 - `off`: disabled mode; do not review and do not activate
 - `on`: armed auto mode, but only activates when the prompt contains `启动sp`
-
-Hook-enabled installs can enforce this more strongly than plain skill-folder installs.
 
 ## Included
 
@@ -58,15 +66,3 @@ Hook-enabled installs can enforce this more strongly than plain skill-folder ins
 - [homebrew.md](homebrew.md)
 - [publish-checklist.md](publish-checklist.md)
 - [marketplace.entry.json](marketplace.entry.json)
-
-If `~/.agents/plugins/marketplace.json` does not exist yet, create it with this shape and then append the `spec-prosecutor` entry:
-
-```json
-{
-  "name": "local-plugins",
-  "interface": {
-    "displayName": "Local Plugins"
-  },
-  "plugins": []
-}
-```
