@@ -29,7 +29,7 @@ spec-prosecutor init --agent cursor --mode on --cursor-workspace /path/to/projec
 Before rendering the formula:
 
 - push the source repository commit
-- create and push the version tag, for example `v0.1.1`
+- create and push the version tag, for example `v0.1.2`
 - make sure the tag archive URL is reachable on GitHub
 
 The formula renderer downloads the tag archive directly and computes the `sha256` for you.

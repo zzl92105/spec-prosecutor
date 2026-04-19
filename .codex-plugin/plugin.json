@@ -1,6 +1,6 @@
 {
   "name": "spec-prosecutor",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "PRD review plugin for engineers before implementation starts.",
   "author": {
     "name": "len"

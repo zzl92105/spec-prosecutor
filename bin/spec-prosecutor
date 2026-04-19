@@ -20,6 +20,11 @@ CLI_INSTALL_ROOT="${HOME}/.local/share/spec-prosecutor"
 CLI_BIN_DIR="${HOME}/.local/bin"
 CLI_BIN_TARGET="${CLI_BIN_DIR}/spec-prosecutor"
 CLI_TARGET_ROOT="${CLI_INSTALL_ROOT}/repo"
+if [[ "$ROOT_DIR" == /opt/homebrew/Cellar/spec-prosecutor/*/libexec || "$ROOT_DIR" == /usr/local/Cellar/spec-prosecutor/*/libexec ]]; then
+  DEFAULT_SKIP_VALIDATE_REPO=1
+else
+  DEFAULT_SKIP_VALIDATE_REPO=0
+fi
 VERSION="$(python3 - <<'PY' "$ROOT_DIR/.codex-plugin/plugin.json"
 import json
 import sys
@@ -372,7 +377,7 @@ case "$command" in
     fi
     ensure_target_selected
     [[ ! "$TARGET_CURSOR" == true || -d "$CURSOR_WORKSPACE" ]] || die "Cursor workspace does not exist: $CURSOR_WORKSPACE"
-    if [[ "${SP_SKIP_VALIDATE_REPO:-0}" != "1" ]]; then
+    if [[ "${SP_SKIP_VALIDATE_REPO:-$DEFAULT_SKIP_VALIDATE_REPO}" != "1" ]]; then
       "$ROOT_DIR/scripts/validate-repo.sh" >/dev/null
     fi
     [[ "$TARGET_CODEX" == true ]] && install_codex "$MODE"
