@@ -9,6 +9,7 @@ class SpecProsecutor < Formula
   depends_on macos: :ventura
 
   def install
+    libexec.install "README.md", ".gitignore"
     libexec.install Dir["*"], ".codex-plugin", ".claude-plugin", ".cursor-plugin"
     bin.install_symlink libexec/"bin/spec-prosecutor" => "spec-prosecutor"
   end
