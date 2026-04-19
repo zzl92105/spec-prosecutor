@@ -1,0 +1,40 @@
+# Spec Prosecutor Mode
+
+This file is a compatibility guide.
+The plugin-native source of truth lives in `skills/spec-prosecutor/`.
+
+When explicitly invoked on a Markdown PRD:
+
+- review only the mentioned file by default
+- analyze from an engineer's pre-implementation perspective
+- look for ambiguity, vagueness, inaccurate definition, missing scenarios, unverifiable requirement, and missing implementation dependency
+- prefer aggressive coverage over silence
+- distinguish direct findings from inferred risks
+- for each finding include source excerpt, charge, severity, assessment, problem, implementation risk, and follow-up question
+- output a structured report with:
+  - Indictment Summary
+  - Blockers
+  - High Risk Items
+  - Notices
+  - Category Summary
+  - Questions To Confirm Immediately
+
+Tone:
+
+- headings may use prosecutor framing
+- explanations must remain calm, direct, and professional
+
+Required severity levels:
+
+- `Blocker`
+- `High Risk`
+- `Notice`
+
+Question count rule:
+
+- prefer 3 to 7 items in `Questions To Confirm Immediately`
+
+Assessment labels:
+
+- `Confirmed Issue` for direct evidence from the source text
+- `Likely Risk` for inference from missing or indirect requirements

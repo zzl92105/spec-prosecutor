@@ -1,0 +1,15 @@
+{
+  "name": "spec-prosecutor",
+  "description": "PRD review plugin for engineers before implementation starts.",
+  "version": "0.1.0",
+  "author": {
+    "name": "len"
+  },
+  "license": "UNLICENSED",
+  "keywords": [
+    "prd-review",
+    "requirements",
+    "engineering",
+    "skill"
+  ]
+}

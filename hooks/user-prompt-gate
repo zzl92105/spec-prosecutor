@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+python3 - <<'PY'
+import json
+import os
+import sys
+
+TRIGGER = "启动sp"
+BLOCK_REASON = f"Spec Prosecutor auto mode is armed, but this prompt does not contain the required trigger phrase: {TRIGGER}"
+CONTEXT = (
+    "The user explicitly armed Spec Prosecutor with the exact trigger phrase. "
+    "If the prompt references one explicit Markdown PRD, invoke $spec-prosecutor for that document only. "
+    "Do not broaden scope beyond the explicitly provided PRD."
+)
+
+try:
+    payload = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+
+prompt = payload.get("prompt", "")
+prompt_lower = prompt.lower()
+mentions_skill = (
+    "$spec-prosecutor" in prompt_lower or
+    "spec prosecutor" in prompt_lower or
+    "spec-prosecutor" in prompt_lower
+)
+
+is_cursor = bool(os.environ.get("CURSOR_PLUGIN_ROOT"))
+is_claude = bool(os.environ.get("CLAUDE_PLUGIN_ROOT")) and not os.environ.get("CURSOR_PLUGIN_ROOT")
+
+if TRIGGER in prompt:
+    if is_cursor:
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": CONTEXT
+            }
+        }, ensure_ascii=False))
+    elif is_claude:
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": CONTEXT
+            }
+        }, ensure_ascii=False))
+    else:
+        print(json.dumps({
+            "hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit",
+                "additionalContext": CONTEXT
+            }
+        }, ensure_ascii=False))
+    sys.exit(0)
+
+if mentions_skill:
+    print(json.dumps({
+        "decision": "block",
+        "reason": BLOCK_REASON
+    }, ensure_ascii=False))
+    sys.exit(0)
+
+sys.exit(0)
+PY

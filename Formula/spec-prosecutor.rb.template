@@ -1,0 +1,19 @@
+class SpecProsecutor < Formula
+  desc "PRD review skill and installer for Claude Code, Codex, and Cursor"
+  homepage "__HOMEPAGE__"
+  url "__URL__"
+  sha256 "__SHA256__"
+  version "__VERSION__"
+  license "UNLICENSED"
+
+  depends_on macos: :ventura
+
+  def install
+    libexec.install Dir["*"], ".codex-plugin", ".claude-plugin", ".cursor-plugin"
+    bin.install_symlink libexec/"bin/spec-prosecutor" => "spec-prosecutor"
+  end
+
+  test do
+    assert_match "__VERSION__", shell_output("#{bin}/spec-prosecutor version")
+  end
+end

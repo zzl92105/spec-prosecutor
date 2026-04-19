@@ -1,0 +1,12 @@
+{
+  "name": "spec-prosecutor",
+  "source": {
+    "source": "local",
+    "path": "/absolute/path/to/spec-prosecutor"
+  },
+  "policy": {
+    "installation": "AVAILABLE",
+    "authentication": "ON_INSTALL"
+  },
+  "category": "Productivity"
+}

@@ -1,0 +1,452 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SELF_PATH="${BASH_SOURCE[0]}"
+while [[ -L "$SELF_PATH" ]]; do
+  LINK_TARGET="$(readlink "$SELF_PATH")"
+  if [[ "$LINK_TARGET" == /* ]]; then
+    SELF_PATH="$LINK_TARGET"
+  else
+    SELF_PATH="$(cd "$(dirname "$SELF_PATH")" && cd "$(dirname "$LINK_TARGET")" && pwd)/$(basename "$LINK_TARGET")"
+  fi
+done
+
+ROOT_DIR="$(cd "$(dirname "$SELF_PATH")/.." && pwd)"
+DEFAULT_MODE="off"
+DEFAULT_CURSOR_WORKSPACE="$PWD"
+TRIGGER="启动sp"
+VERSION="$(python3 - <<'PY' "$ROOT_DIR/.codex-plugin/plugin.json"
+import json
+import sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text())["version"])
+PY
+)"
+
+usage() {
+  cat <<EOF
+spec-prosecutor ${VERSION}
+
+Usage:
+  spec-prosecutor init [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--cursor-workspace PATH]
+  spec-prosecutor add [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--cursor-workspace PATH]
+  spec-prosecutor on [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor off [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor uninstall [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor remove [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor export [off|on]
+  spec-prosecutor doctor
+  spec-prosecutor status
+  spec-prosecutor version
+  spec-prosecutor help
+
+Commands:
+  init       Install Spec Prosecutor into one or more hosts on macOS.
+  add        Alias for init.
+  on         Switch the selected targets to on mode.
+  off        Switch the selected targets to off mode.
+  uninstall  Remove installed assets from one or more hosts.
+  remove     Alias for uninstall.
+  export     Build local install payloads under dist/.
+  doctor     Print install locations and expected trigger phrase.
+  status     Alias for doctor.
+  version    Print the installed Spec Prosecutor version.
+
+Examples:
+  spec-prosecutor init -g                     # Claude Code
+  spec-prosecutor add -g --mode on
+  spec-prosecutor on --codex
+  spec-prosecutor 开启 --agent cursor --cursor-workspace /path/to/project
+  spec-prosecutor init -g --codex            # Codex
+  spec-prosecutor init --agent cursor --cursor-workspace /path/to/project
+  spec-prosecutor remove -g
+EOF
+}
+
+die() {
+  echo "$*" >&2
+  exit 1
+}
+
+require_macos() {
+  [[ "$(uname -s)" == "Darwin" ]] || die "Spec Prosecutor installer currently supports macOS only."
+}
+
+set_target_by_agent() {
+  local agent="$1"
+  case "$agent" in
+    claude-code|claude|copilot)
+      TARGET_CLAUDE=true
+      ;;
+    codex)
+      TARGET_CODEX=true
+      ;;
+    cursor)
+      TARGET_CURSOR=true
+      ;;
+    gemini|windsurf|cline|roo|roo-code|kilocode|antigravity)
+      die "Agent '$agent' is not supported yet. Supported agents: claude-code, codex, cursor."
+      ;;
+    *)
+      die "Unknown agent: $agent. Supported agents: claude-code, codex, cursor."
+      ;;
+  esac
+}
+
+ensure_target_selected() {
+  if [[ "$TARGET_ALL" == false && "$TARGET_CODEX" == false && "$TARGET_CLAUDE" == false && "$TARGET_CURSOR" == false ]]; then
+    TARGET_ALL=true
+  fi
+
+  if [[ "$TARGET_ALL" == true ]]; then
+    TARGET_CODEX=true
+    TARGET_CLAUDE=true
+    TARGET_CURSOR=true
+  fi
+}
+
+copy_dir() {
+  local src="$1"
+  local dest="$2"
+  rm -rf "$dest"
+  mkdir -p "$(dirname "$dest")"
+  cp -R "$src" "$dest"
+}
+
+resolve_codex_marketplace_path() {
+  if [[ -n "${CODEX_MARKETPLACE_PATH:-}" ]]; then
+    printf '%s\n' "$CODEX_MARKETPLACE_PATH"
+  else
+    printf '%s\n' "$HOME/.agents/plugins/marketplace.json"
+  fi
+}
+
+resolve_codex_plugin_dir() {
+  if [[ -n "${CODEX_PLUGIN_DIR:-}" ]]; then
+    printf '%s\n' "$CODEX_PLUGIN_DIR"
+  elif [[ -n "${CODEX_PLUGIN_ROOT:-}" ]]; then
+    printf '%s\n' "$CODEX_PLUGIN_ROOT/spec-prosecutor"
+  else
+    printf '%s\n' "$HOME/plugins/spec-prosecutor"
+  fi
+}
+
+merge_codex_marketplace() {
+  local marketplace_path="$1"
+  local entry_path="$2"
+  local plugin_path="$3"
+  python3 - "$marketplace_path" "$entry_path" "$plugin_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+marketplace_path = Path(sys.argv[1]).expanduser()
+entry_path = Path(sys.argv[2])
+plugin_path = str(Path(sys.argv[3]).expanduser().resolve())
+entry = json.loads(entry_path.read_text())
+entry.setdefault("source", {})
+entry["source"]["path"] = plugin_path
+
+if marketplace_path.exists():
+    marketplace = json.loads(marketplace_path.read_text())
+else:
+    marketplace = {
+        "name": "local-plugins",
+        "interface": {"displayName": "Local Plugins"},
+        "plugins": [],
+    }
+
+plugins = marketplace.setdefault("plugins", [])
+replaced = False
+for idx, plugin in enumerate(plugins):
+    if plugin.get("name") == entry.get("name"):
+        plugins[idx] = entry
+        replaced = True
+        break
+
+if not replaced:
+    plugins.append(entry)
+
+marketplace_path.parent.mkdir(parents=True, exist_ok=True)
+marketplace_path.write_text(json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n")
+PY
+}
+
+remove_codex_marketplace_entry() {
+  local marketplace_path="$1"
+  python3 - "$marketplace_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+marketplace_path = Path(sys.argv[1]).expanduser()
+if not marketplace_path.exists():
+    raise SystemExit(0)
+
+marketplace = json.loads(marketplace_path.read_text())
+plugins = marketplace.get("plugins", [])
+plugins = [plugin for plugin in plugins if plugin.get("name") != "spec-prosecutor"]
+marketplace["plugins"] = plugins
+marketplace_path.write_text(json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n")
+PY
+}
+
+install_codex() {
+  local mode="$1"
+  local dest
+  local marketplace
+  dest="$(resolve_codex_plugin_dir)"
+  marketplace="$(resolve_codex_marketplace_path)"
+  bash "$ROOT_DIR/scripts/export-plugin.sh" "$mode" >/dev/null
+  copy_dir "$ROOT_DIR/dist/codex/$mode/spec-prosecutor" "$dest"
+  merge_codex_marketplace "$marketplace" "$ROOT_DIR/docs/install/marketplace.entry.json" "$dest"
+  echo "Installed Codex plugin to $dest ($mode mode)"
+}
+
+install_claude() {
+  local mode="$1"
+  local dest="$HOME/.claude/skills/spec-prosecutor"
+  bash "$ROOT_DIR/scripts/export-claude-code-skill.sh" "$mode" >/dev/null
+  copy_dir "$ROOT_DIR/dist/claude-code/$mode/spec-prosecutor" "$dest"
+  echo "Installed Claude Code skill to $dest ($mode mode)"
+}
+
+install_cursor() {
+  local mode="$1"
+  local workspace="$2"
+  local workspace_abs
+  workspace_abs="$(cd "$workspace" && pwd)"
+  local dest="$workspace_abs/.cursor/rules/spec-prosecutor.mdc"
+  bash "$ROOT_DIR/scripts/export-cursor-rule.sh" "$mode" >/dev/null
+  mkdir -p "$(dirname "$dest")"
+  cp "$ROOT_DIR/dist/cursor/$mode/spec-prosecutor.mdc" "$dest"
+  echo "Installed Cursor rule to $dest ($mode mode)"
+}
+
+uninstall_codex() {
+  local dest
+  local marketplace
+  dest="$(resolve_codex_plugin_dir)"
+  marketplace="$(resolve_codex_marketplace_path)"
+  local removed=false
+  if [[ -e "$dest" ]]; then
+    rm -rf "$dest"
+    echo "Removed Codex plugin from $dest"
+    removed=true
+  else
+    echo "Codex plugin not installed at $dest"
+  fi
+
+  if [[ -e "$marketplace" ]] && rg -q '"name": "spec-prosecutor"' "$marketplace"; then
+    remove_codex_marketplace_entry "$marketplace"
+    echo "Removed Codex marketplace entry from $marketplace"
+    removed=true
+  else
+    echo "Codex marketplace entry not present in $marketplace"
+  fi
+
+  [[ "$removed" == true ]] || echo "No Codex uninstall changes were needed."
+}
+
+uninstall_claude() {
+  local dest="$HOME/.claude/skills/spec-prosecutor"
+  if [[ -e "$dest" ]]; then
+    rm -rf "$dest"
+    echo "Removed Claude Code skill from $dest"
+  else
+    echo "Claude Code skill not installed at $dest"
+  fi
+}
+
+uninstall_cursor() {
+  local workspace="$1"
+  local workspace_abs
+  workspace_abs="$(cd "$workspace" && pwd)"
+  local dest="$workspace_abs/.cursor/rules/spec-prosecutor.mdc"
+  if [[ -e "$dest" ]]; then
+    rm -f "$dest"
+    echo "Removed Cursor rule from $dest"
+  else
+    echo "Cursor rule not installed at $dest"
+  fi
+}
+
+doctor() {
+  local codex_plugin_dir
+  local codex_marketplace
+  codex_plugin_dir="$(resolve_codex_plugin_dir)"
+  codex_marketplace="$(resolve_codex_marketplace_path)"
+  cat <<EOF
+spec-prosecutor doctor
+
+Version:
+  $VERSION
+
+Install targets:
+  Codex:       $codex_plugin_dir
+  Marketplace: $codex_marketplace
+  Claude Code: $HOME/.claude/skills/spec-prosecutor
+  Cursor:      <workspace>/.cursor/rules/spec-prosecutor.mdc
+
+Trigger phrase for on mode:
+  $TRIGGER
+
+Supported agents:
+  claude-code, codex, cursor
+
+Optional Codex env overrides:
+  CODEX_PLUGIN_DIR
+  CODEX_PLUGIN_ROOT
+  CODEX_MARKETPLACE_PATH
+EOF
+}
+
+print_init_next_steps() {
+  local mode="$1"
+  cat <<EOF
+
+Next steps:
+  spec-prosecutor doctor
+EOF
+
+  if [[ "$mode" == "on" ]]; then
+    cat <<EOF
+  Trigger phrase:
+    $TRIGGER
+EOF
+  fi
+}
+
+command="${1:-help}"
+if [[ $# -gt 0 ]]; then
+  shift
+fi
+
+case "$command" in
+  add) command="init" ;;
+  on|enable|开启) command="init"; set -- --mode on "$@" ;;
+  off|disable|关闭) command="init"; set -- --mode off "$@" ;;
+  remove) command="uninstall" ;;
+  status) command="doctor" ;;
+  i) command="init" ;;
+  x|rm) command="uninstall" ;;
+  d) command="doctor" ;;
+  v) command="version" ;;
+esac
+
+case "$command" in
+  init)
+    require_macos
+    TARGET_ALL=false
+    TARGET_CODEX=false
+    TARGET_CLAUDE=false
+    TARGET_CURSOR=false
+    GLOBAL_TARGET=false
+    MODE="$DEFAULT_MODE"
+    CURSOR_WORKSPACE="$DEFAULT_CURSOR_WORKSPACE"
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --all) TARGET_ALL=true ;;
+        -g|--global) GLOBAL_TARGET=true ;;
+        --codex) TARGET_CODEX=true ;;
+        --claude-code) TARGET_CLAUDE=true ;;
+        --cursor) TARGET_CURSOR=true ;;
+        --agent)
+          shift
+          [[ $# -gt 0 ]] || die "--agent requires a value"
+          set_target_by_agent "$1"
+          ;;
+        --mode)
+          shift
+          [[ $# -gt 0 ]] || die "--mode requires off or on"
+          MODE="$1"
+          ;;
+        --cursor-workspace)
+          shift
+          [[ $# -gt 0 ]] || die "--cursor-workspace requires a path"
+          CURSOR_WORKSPACE="$1"
+          ;;
+        *)
+          die "Unknown init option: $1"
+          ;;
+      esac
+      shift
+    done
+    [[ "$MODE" == "off" || "$MODE" == "on" ]] || die "--mode must be off or on"
+    if [[ "$GLOBAL_TARGET" == true && "$TARGET_CODEX" == false && "$TARGET_CLAUDE" == false && "$TARGET_CURSOR" == false && "$TARGET_ALL" == false ]]; then
+      TARGET_CLAUDE=true
+    fi
+    ensure_target_selected
+    [[ ! "$TARGET_CURSOR" == true || -d "$CURSOR_WORKSPACE" ]] || die "Cursor workspace does not exist: $CURSOR_WORKSPACE"
+    if [[ "${SP_SKIP_VALIDATE_REPO:-0}" != "1" ]]; then
+      "$ROOT_DIR/scripts/validate-repo.sh" >/dev/null
+    fi
+    [[ "$TARGET_CODEX" == true ]] && install_codex "$MODE"
+    [[ "$TARGET_CLAUDE" == true ]] && install_claude "$MODE"
+    [[ "$TARGET_CURSOR" == true ]] && install_cursor "$MODE" "$CURSOR_WORKSPACE"
+    echo "Spec Prosecutor init complete."
+    print_init_next_steps "$MODE"
+    ;;
+  uninstall)
+    require_macos
+    TARGET_ALL=false
+    TARGET_CODEX=false
+    TARGET_CLAUDE=false
+    TARGET_CURSOR=false
+    GLOBAL_TARGET=false
+    CURSOR_WORKSPACE="$DEFAULT_CURSOR_WORKSPACE"
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --all) TARGET_ALL=true ;;
+        -g|--global) GLOBAL_TARGET=true ;;
+        --codex) TARGET_CODEX=true ;;
+        --claude-code) TARGET_CLAUDE=true ;;
+        --cursor) TARGET_CURSOR=true ;;
+        --agent)
+          shift
+          [[ $# -gt 0 ]] || die "--agent requires a value"
+          set_target_by_agent "$1"
+          ;;
+        --cursor-workspace)
+          shift
+          [[ $# -gt 0 ]] || die "--cursor-workspace requires a path"
+          CURSOR_WORKSPACE="$1"
+          ;;
+        *)
+          die "Unknown uninstall option: $1"
+          ;;
+      esac
+      shift
+    done
+    if [[ "$GLOBAL_TARGET" == true && "$TARGET_CODEX" == false && "$TARGET_CLAUDE" == false && "$TARGET_CURSOR" == false && "$TARGET_ALL" == false ]]; then
+      TARGET_CLAUDE=true
+    fi
+    ensure_target_selected
+    [[ "$TARGET_CODEX" == true ]] && uninstall_codex
+    [[ "$TARGET_CLAUDE" == true ]] && uninstall_claude
+    [[ "$TARGET_CURSOR" == true ]] && uninstall_cursor "$CURSOR_WORKSPACE"
+    echo "Spec Prosecutor uninstall complete."
+    ;;
+  export)
+    require_macos
+    MODE="${1:-off}"
+    [[ "$MODE" == "off" || "$MODE" == "on" ]] || die "export mode must be off or on"
+    bash "$ROOT_DIR/scripts/export-plugin.sh" "$MODE" >/dev/null
+    bash "$ROOT_DIR/scripts/export-claude-code-skill.sh" "$MODE" >/dev/null
+    bash "$ROOT_DIR/scripts/export-cursor-rule.sh" "$MODE" >/dev/null
+    echo "Exported $MODE-mode install payloads under $ROOT_DIR/dist"
+    ;;
+  doctor)
+    doctor
+    ;;
+  version|--version|-v)
+    echo "$VERSION"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    die "Unknown command: $command"
+    ;;
+esac

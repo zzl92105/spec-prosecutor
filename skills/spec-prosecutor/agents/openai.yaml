@@ -1,0 +1,8 @@
+interface:
+  display_name: "Spec Prosecutor"
+  short_description: "Audit one Markdown PRD before coding starts"
+  brand_color: "#991B1B"
+  default_prompt: "Use $spec-prosecutor to review this Markdown PRD, identify implementation blockers and likely risks, and return a structured indictment report."
+
+policy:
+  allow_implicit_invocation: false
