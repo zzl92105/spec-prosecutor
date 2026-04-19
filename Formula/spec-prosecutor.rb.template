@@ -1,8 +1,10 @@
 class SpecProsecutor < Formula
   desc "PRD review skill and installer for Claude Code, Codex, and Cursor"
   homepage "__HOMEPAGE__"
-  url "__URL__"
-  sha256 "__SHA256__"
+  url "__URL__",
+      using: GitDownloadStrategy,
+      tag: "__TAG__",
+      revision: "__REVISION__"
   version "__VERSION__"
   license "UNLICENSED"
 

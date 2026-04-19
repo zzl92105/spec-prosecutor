@@ -30,9 +30,9 @@ Before rendering the formula:
 
 - push the source repository commit
 - create and push the version tag, for example `v0.1.2`
-- make sure the tag archive URL is reachable on GitHub
+- make sure the tagged commit is reachable on GitHub
 
-The formula renderer downloads the tag archive directly and computes the `sha256` for you.
+The formula renderer uses the Git tag and pinned commit revision directly.
 
 ## Optional Release Archive
 
@@ -70,7 +70,7 @@ That writes:
 The rendered formula points to:
 
 ```text
-https://github.com/zzl92105/spec-prosecutor/archive/refs/tags/v<version>.tar.gz
+https://github.com/zzl92105/spec-prosecutor.git
 ```
 
 ## Tap Publishing
