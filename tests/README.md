@@ -31,6 +31,8 @@ Give a fresh review context only the Skill and raw inputs; do not expose `expect
 
 Test `$spec-prosecutor` in Codex, `/spec-prosecutor:spec-prosecutor` in a Claude plugin, natural-language review and the optional `启动sp` alias. An installation question must not start an audit.
 
+For report readability, check that a nontechnical reader can identify what is wrong, when it happens, who is affected and what decision is needed. Titles should describe a concrete problem; unexplained jargon or category labels alone are insufficient. Complex issues need causal explanations; simple or clean cases should not be padded. Preserve source evidence, distinguish facts from example assumptions, and do not claim measured performance from a PRD. These are behavioral acceptance criteria, not exact wording to match.
+
 Record host versions and actual observations. Packaging and discovery do not prove model review quality. The 2026-09-28 development run used Codex CLI 0.157.1 and Claude Code 2.1.282 for native integration. An independent agent review of directory-review found the 24/12-hour conflict, treated the unapproved draft as a draft, separated the known pending decision, and identified an additional conditional risk around creation-flow coverage. It returned zero findings for clear-requirement. This was an agent-level behavioral test, not a live Claude model run.
 
 ## Customer acceptance packages

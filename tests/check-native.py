@@ -48,16 +48,19 @@ run("claude", "plugin", "enable", plugin_id)
 # Upgrade the isolated source, then ensure native management sees the new version.
 manifest = repo / "plugins/spec-prosecutor/plugin.json"
 data = json.loads(manifest.read_text(encoding="utf-8"))
-data["version"] = "0.2.1"
+major, minor, patch = map(int, data["version"].split("."))
+next_version = f"{major}.{minor}.{patch + 1}"
+assert next_version != first["version"]
+data["version"] = next_version
 manifest.write_text(json.dumps(data))
 run(sys.executable, str(repo / "scripts/sync-metadata.py"))
 # Local marketplaces are reread on add; marketplace upgrade is for Git sources.
 updated = json.loads(run("codex", "plugin", "add", plugin_id, "--json"))
-assert updated["version"] == "0.2.1"
+assert updated["version"] == next_version
 same_skill(Path(updated["installedPath"]))
 run("claude", "plugin", "marketplace", "update", "spec-prosecutor-marketplace")
 run("claude", "plugin", "update", plugin_id)
 installed = json.loads((scratch / "claude/plugins/installed_plugins.json").read_text(encoding="utf-8"))
-assert installed["plugins"][plugin_id][0]["version"] == "0.2.1"
+assert installed["plugins"][plugin_id][0]["version"] == next_version
 same_skill(Path(installed["plugins"][plugin_id][0]["installPath"]))
 print(f"Native install, component discovery and update passed. Isolated artifacts: {scratch}")

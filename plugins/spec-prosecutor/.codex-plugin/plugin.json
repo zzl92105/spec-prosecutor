@@ -1,6 +1,6 @@
 {
   "name": "spec-prosecutor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
   "author": {
     "name": "len"

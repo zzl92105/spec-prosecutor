@@ -41,7 +41,7 @@ Use only applicable checks. A question below is a review aid, not a requirement 
 ## Dependencies, capacity and lifecycle
 
 - Are required external capabilities, inputs, owners and unresolved decisions identified? Is a missing dependency actually needed before the affected phase can start?
-- For performance promises, are measurement conditions and acceptance thresholds meaningful? Do not demand QPS, caching or TTL for features with no demonstrated need.
+- For performance promises, are measurement conditions and acceptance thresholds meaningful? Check whether the stated work has an unclear size or frequency (for example, exporting all history, repeatedly refreshing all records, or simultaneous requests) when that affects the promise. Explain the concrete scenario and missing assumptions; hypothetical scale is not evidence of a confirmed bottleneck. Distinguish an untestable requirement from a risk needing code inspection, measurements or load testing. Do not demand QPS, caching or TTL for features with no demonstrated need.
 - If existing data/rules/users are affected, is compatibility, effective date and failure/reversal behavior clear? An isolated new feature does not inherently need a migration plan.
 - Do retention, deletion, privacy/consent or audit requirements apply to the described data lifecycle? Use supplied policy or verified sources; do not invent compliance obligations.
 
