@@ -2,7 +2,7 @@
   "name": "spec-prosecutor",
   "source": {
     "source": "local",
-    "path": "/absolute/path/to/spec-prosecutor"
+    "path": "./plugins/spec-prosecutor"
   },
   "policy": {
     "installation": "AVAILABLE",

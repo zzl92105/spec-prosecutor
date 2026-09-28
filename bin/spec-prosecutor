@@ -26,7 +26,7 @@ if [[ "$ROOT_DIR" == /opt/homebrew/Cellar/spec-prosecutor/*/libexec || "$ROOT_DI
 else
   DEFAULT_SKIP_VALIDATE_REPO=0
 fi
-VERSION="$(python3 - <<'PY' "$ROOT_DIR/.codex-plugin/plugin.json"
+VERSION="$(python3 - <<'PY' "$ROOT_DIR/plugins/spec-prosecutor/plugin.json"
 import json
 import sys
 from pathlib import Path
@@ -52,14 +52,14 @@ Usage:
   spec-prosecutor help
 
 Commands:
-  init       Install Spec Prosecutor into one or more hosts on macOS.
+  init       Install standalone Skills/rules (not native plugins).
   add        Alias for init.
   on         Switch the selected targets to on mode.
   off        Switch the selected targets to off mode.
   uninstall  Remove installed assets from one or more hosts.
   remove     Alias for uninstall.
   export     Build local install payloads under dist/.
-  doctor     Print install locations and expected trigger phrase.
+  doctor     Inspect standalone locations and show native plugin commands.
   status     Alias for doctor.
   version    Print the installed Spec Prosecutor version.
 
@@ -81,14 +81,14 @@ die() {
   exit 1
 }
 
-require_macos() {
-  [[ "$(uname -s)" == "Darwin" ]] || die "Spec Prosecutor installer currently supports macOS only."
+require_runtime() {
+  command -v python3 >/dev/null || die "Standalone Skill installation requires Python 3.9+. Native plugins do not need this script."
 }
 
 set_target_by_agent() {
   local agent="$1"
   case "$agent" in
-    claude-code|claude|copilot)
+    claude-code|claude)
       TARGET_CLAUDE=true
       ;;
     codex)
@@ -108,7 +108,7 @@ set_target_by_agent() {
 
 ensure_target_selected() {
   if [[ "$TARGET_ALL" == false && "$TARGET_CODEX" == false && "$TARGET_CLAUDE" == false && "$TARGET_CURSOR" == false ]]; then
-    TARGET_ALL=true
+    die "Choose --codex, --claude-code, --cursor or --all. This command installs standalone Skills; see README.md for native plugins."
   fi
 
   if [[ "$TARGET_ALL" == true ]]; then
@@ -121,86 +121,9 @@ ensure_target_selected() {
 copy_dir() {
   local src="$1"
   local dest="$2"
+  [[ ! -L "$dest" ]] || die "Refusing to overwrite a symlink: $dest"
   mkdir -p "$dest"
   cp -R "$src/." "$dest/"
-}
-
-resolve_codex_marketplace_path() {
-  if [[ -n "${CODEX_MARKETPLACE_PATH:-}" ]]; then
-    printf '%s\n' "$CODEX_MARKETPLACE_PATH"
-  else
-    printf '%s\n' "$HOME/.agents/plugins/marketplace.json"
-  fi
-}
-
-resolve_codex_plugin_dir() {
-  if [[ -n "${CODEX_PLUGIN_DIR:-}" ]]; then
-    printf '%s\n' "$CODEX_PLUGIN_DIR"
-  elif [[ -n "${CODEX_PLUGIN_ROOT:-}" ]]; then
-    printf '%s\n' "$CODEX_PLUGIN_ROOT/spec-prosecutor"
-  else
-    printf '%s\n' "$HOME/plugins/spec-prosecutor"
-  fi
-}
-
-merge_codex_marketplace() {
-  local marketplace_path="$1"
-  local entry_path="$2"
-  local plugin_path="$3"
-  python3 - "$marketplace_path" "$entry_path" "$plugin_path" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-marketplace_path = Path(sys.argv[1]).expanduser()
-entry_path = Path(sys.argv[2])
-plugin_path = str(Path(sys.argv[3]).expanduser().resolve())
-entry = json.loads(entry_path.read_text())
-entry.setdefault("source", {})
-entry["source"]["path"] = plugin_path
-
-if marketplace_path.exists():
-    marketplace = json.loads(marketplace_path.read_text())
-else:
-    marketplace = {
-        "name": "local-plugins",
-        "interface": {"displayName": "Local Plugins"},
-        "plugins": [],
-    }
-
-plugins = marketplace.setdefault("plugins", [])
-replaced = False
-for idx, plugin in enumerate(plugins):
-    if plugin.get("name") == entry.get("name"):
-        plugins[idx] = entry
-        replaced = True
-        break
-
-if not replaced:
-    plugins.append(entry)
-
-marketplace_path.parent.mkdir(parents=True, exist_ok=True)
-marketplace_path.write_text(json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n")
-PY
-}
-
-remove_codex_marketplace_entry() {
-  local marketplace_path="$1"
-  python3 - "$marketplace_path" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-marketplace_path = Path(sys.argv[1]).expanduser()
-if not marketplace_path.exists():
-    raise SystemExit(0)
-
-marketplace = json.loads(marketplace_path.read_text())
-plugins = marketplace.get("plugins", [])
-plugins = [plugin for plugin in plugins if plugin.get("name") != "spec-prosecutor"]
-marketplace["plugins"] = plugins
-marketplace_path.write_text(json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n")
-PY
 }
 
 install_codex() {
@@ -281,13 +204,14 @@ uninstall_cli() {
 }
 
 doctor() {
+  python3 "$ROOT_DIR/scripts/doctor.py"
   cat <<EOF
 spec-prosecutor doctor
 
 Version:
   $VERSION
 
-Install targets:
+Standalone Skill targets (separate from native plugins):
   CLI:         $CLI_BIN_TARGET
   Codex:       $HOME/.agents/skills/spec-prosecutor
   Claude Code: $HOME/.claude/skills/spec-prosecutor
@@ -336,7 +260,7 @@ esac
 
 case "$command" in
   init)
-    require_macos
+    require_runtime
     TARGET_ALL=false
     TARGET_CODEX=false
     TARGET_CLAUDE=false
@@ -390,7 +314,7 @@ case "$command" in
     ensure_target_selected
     [[ ! "$TARGET_CURSOR" == true || -d "$CURSOR_WORKSPACE" ]] || die "Cursor workspace does not exist: $CURSOR_WORKSPACE"
     if [[ "${SP_SKIP_VALIDATE_REPO:-$DEFAULT_SKIP_VALIDATE_REPO}" != "1" ]]; then
-      bash "$ROOT_DIR/scripts/validate-repo.sh" --static >/dev/null
+      python3 "$ROOT_DIR/scripts/sync-metadata.py" --check >/dev/null
     fi
     [[ "$TARGET_CODEX" == true ]] && install_codex "$MODE"
     [[ "$TARGET_CLAUDE" == true ]] && install_claude "$MODE"
@@ -399,7 +323,7 @@ case "$command" in
     print_init_next_steps "$MODE"
     ;;
   uninstall)
-    require_macos
+    require_runtime
     TARGET_ALL=false
     TARGET_CODEX=false
     TARGET_CLAUDE=false
@@ -445,7 +369,9 @@ case "$command" in
       [[ "$TARGET_ALL" == false && "$TARGET_CURSOR" == false ]] || die "--project supports --codex and --claude-code only"
       [[ "$TARGET_CODEX" == true || "$TARGET_CLAUDE" == true ]] || die "Choose --codex and/or --claude-code with --project"
     fi
-    ensure_target_selected
+    if [[ "$TARGET_CLI" == false || "$TARGET_ALL" == true ]]; then
+      ensure_target_selected
+    fi
     [[ -z "$PROJECT_DIR" || "$TARGET_CLI" == false ]] || die "--cli cannot be combined with --project"
     [[ "$TARGET_CODEX" == true ]] && uninstall_codex
     [[ "$TARGET_CLAUDE" == true ]] && uninstall_claude
@@ -454,7 +380,7 @@ case "$command" in
     echo "Spec Prosecutor uninstall complete."
     ;;
   export)
-    require_macos
+    require_runtime
     MODE="${1:-on}"
     [[ "$MODE" == "off" || "$MODE" == "on" ]] || die "export mode must be off or on"
     bash "$ROOT_DIR/scripts/export-codex-skill.sh" "$MODE" >/dev/null

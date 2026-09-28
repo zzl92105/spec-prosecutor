@@ -9,7 +9,7 @@ Review requirements for implementability and testability. Work across business d
 
 ## Inputs and invocation
 
-Accept a document, pasted requirements, a named group of files, or a directory. In Codex use `$spec-prosecutor`; in Claude Code use `/spec-prosecutor` (plugin installations may namespace the command). `启动sp` remains an optional natural-language alias, not an extra password. The source package is enabled; see [activation modes](references/modes.md) only for installation or mode questions.
+Accept a document, pasted requirements, a named group of files, or a directory. In Codex use `$spec-prosecutor`; in Claude Code plugin installations use `/spec-prosecutor:spec-prosecutor` (standalone Skill copies use `/spec-prosecutor`). `启动sp` remains an optional natural-language alias, not an extra password. The source package is enabled; see [activation modes](references/modes.md) only for installation or mode questions.
 
 If no target can be resolved from the request or attachments, ask for it. Otherwise proceed; ask only when a missing scope or authority decision would change the work materially.
 

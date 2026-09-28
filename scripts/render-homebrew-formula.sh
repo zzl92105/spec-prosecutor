@@ -10,7 +10,7 @@ fi
 OWNER="$1"
 REPO="$2"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="$(python3 - <<'PY' "$ROOT_DIR/.codex-plugin/plugin.json"
+VERSION="$(python3 - <<'PY' "$ROOT_DIR/plugins/spec-prosecutor/plugin.json"
 import json
 import sys
 from pathlib import Path
@@ -22,7 +22,7 @@ FORMULA_TEMPLATE="$ROOT_DIR/Formula/spec-prosecutor.rb.template"
 FORMULA_OUTPUT_DIR="$ROOT_DIR/dist/release/homebrew"
 FORMULA_OUTPUT_PATH="$FORMULA_OUTPUT_DIR/spec-prosecutor.rb"
 TAG="v${VERSION}"
-REVISION="$(git rev-list -n 1 "$TAG")"
+REVISION="$(git -C "$ROOT_DIR" rev-list -n 1 "$TAG")"
 URL="https://github.com/${OWNER}/${REPO}.git"
 HOMEPAGE="https://github.com/${OWNER}/${REPO}"
 mkdir -p "$FORMULA_OUTPUT_DIR"

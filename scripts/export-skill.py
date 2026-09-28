@@ -8,9 +8,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def export_skill(destination, mode):
-    source = ROOT / "skills/spec-prosecutor"
+    source = ROOT / "plugins/spec-prosecutor/skills/spec-prosecutor"
     destination = Path(destination).resolve()
-    if destination == source.resolve() or source.resolve() in destination.parents:
+    if mode not in ("on", "off"):
+        raise ValueError("Mode must be on or off")
+    if destination == source.resolve() or source.resolve() in destination.parents or destination in source.resolve().parents:
         raise ValueError("Export destination must not overwrite skill sources")
     shutil.copytree(source, destination, dirs_exist_ok=True)
     legacy_readme = destination / "README.md"

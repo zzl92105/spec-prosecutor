@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cat <<'EOF'
-Project installation (run from this repository):
-  bash bin/spec-prosecutor add --codex --claude-code --project /path/to/project
-
-Manual installation: copy the complete skills/spec-prosecutor folder to:
-  Codex:       <project>/.agents/skills/
-  Claude Code: <project>/.claude/skills/
-
-Native invocation:
+Codex native plugin:
+  codex plugin marketplace add https://github.com/zzl92105/spec-prosecutor.git --ref main
+  codex plugin add spec-prosecutor@spec-prosecutor-marketplace
+Claude Code native plugin:
+  claude plugin marketplace add zzl92105/spec-prosecutor
+  claude plugin install spec-prosecutor@spec-prosecutor-marketplace
+Invocation:
   Codex:       $spec-prosecutor <file-or-directory>
-  Claude Code: /spec-prosecutor <file-or-directory>
-
-Optional legacy alias: 启动sp
-See README.md for on/off, user-level installation and legacy Cursor support.
+  Claude Code: /spec-prosecutor:spec-prosecutor <file-or-directory>
+Start a new session after installation. See docs/install/migration.md for old standalone copies.
 EOF

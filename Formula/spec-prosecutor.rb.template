@@ -12,7 +12,7 @@ class SpecProsecutor < Formula
 
   def install
     libexec.install "README.md", ".gitignore"
-    libexec.install Dir["*"], ".codex-plugin", ".claude-plugin", ".cursor-plugin"
+    libexec.install Dir["*"], ".agents", ".claude-plugin", ".cursor-plugin"
     bin.install_symlink libexec/"bin/spec-prosecutor" => "spec-prosecutor"
   end
 

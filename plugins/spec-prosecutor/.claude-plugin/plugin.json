@@ -1,7 +1,7 @@
 {
   "name": "spec-prosecutor",
+  "version": "0.2.0",
   "description": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
-  "version": "0.1.2",
   "author": {
     "name": "len"
   },
@@ -11,5 +11,7 @@
     "requirements",
     "engineering",
     "skill"
-  ]
+  ],
+  "repository": "https://github.com/zzl92105/spec-prosecutor",
+  "homepage": "https://github.com/zzl92105/spec-prosecutor"
 }

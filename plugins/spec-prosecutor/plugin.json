@@ -1,0 +1,38 @@
+{
+  "name": "spec-prosecutor",
+  "version": "0.2.0",
+  "description": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
+  "author": {
+    "name": "len"
+  },
+  "license": "UNLICENSED",
+  "keywords": [
+    "prd-review",
+    "requirements",
+    "engineering",
+    "skill"
+  ],
+  "repository": "https://github.com/zzl92105/spec-prosecutor",
+  "homepage": "https://github.com/zzl92105/spec-prosecutor",
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Spec Prosecutor",
+        "shortDescription": "审查 PRD 边界、逻辑错误与跨文档冲突",
+        "longDescription": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
+        "developerName": "len",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Review"
+        ],
+        "defaultPrompt": [
+          "Review this PRD or requirements directory and cite unclear boundaries, errors and conflicts."
+        ],
+        "brandColor": "#991B1B",
+        "websiteURL": "https://github.com/zzl92105/spec-prosecutor"
+      }
+    }
+  }
+}

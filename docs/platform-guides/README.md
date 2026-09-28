@@ -10,6 +10,6 @@ These files are compatibility notes for environments that do not consume the plu
 
 The plugin-native source of truth remains:
 
-- [.codex-plugin/plugin.json](../../.codex-plugin/plugin.json)
-- [skills/spec-prosecutor/SKILL.md](../../skills/spec-prosecutor/SKILL.md)
-- [skills/spec-prosecutor/references/](../../skills/spec-prosecutor/references)
+- [plugin.json](../../plugins/spec-prosecutor/plugin.json)
+- [skills/spec-prosecutor/SKILL.md](../../plugins/spec-prosecutor/skills/spec-prosecutor/SKILL.md)
+- [skills/spec-prosecutor/references/](../../plugins/spec-prosecutor/skills/spec-prosecutor/references)

@@ -1,0 +1,17 @@
+{
+  "name": "spec-prosecutor-marketplace",
+  "owner": {
+    "name": "len"
+  },
+  "metadata": {
+    "description": "General-purpose PRD review for Codex and Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "spec-prosecutor",
+      "source": "./plugins/spec-prosecutor",
+      "version": "0.2.0",
+      "description": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts."
+    }
+  ]
+}

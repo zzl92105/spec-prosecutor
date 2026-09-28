@@ -1,7 +1,7 @@
 # Spec Prosecutor Mode
 
 This file is a compatibility guide.
-The plugin-native source of truth lives in `skills/spec-prosecutor/`.
+The plugin-native source of truth lives in `plugins/spec-prosecutor/skills/spec-prosecutor/`.
 
 When explicitly invoked on a Markdown PRD:
 

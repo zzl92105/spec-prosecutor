@@ -2,9 +2,13 @@
 """Runnable packaging/install checks; no model calls or real user installation."""
 import hashlib
 import json
+import os
 import shutil
 import subprocess
+import sys
+import tarfile
 import tempfile
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +26,7 @@ def main():
     scratch = Path(tempfile.mkdtemp(prefix="spec-prosecutor-check-"))
     repo = scratch / "source"
     shutil.copytree(ROOT, repo, ignore=shutil.ignore_patterns(".git", "dist", "__pycache__"))
-    original = snapshot(repo / "skills")
+    original = snapshot(repo / "plugins/spec-prosecutor/skills")
 
     def run(*args, ok=True):
         result = subprocess.run(args, cwd=repo, text=True, capture_output=True)
@@ -32,7 +36,7 @@ def main():
     for path in [repo / "bin/spec-prosecutor", *repo.glob("scripts/*.sh"), repo / "hooks/user-prompt-gate"]:
         run("bash", "-n", str(path))
     run("bash", "scripts/export-all.sh")
-    source = snapshot(repo / "skills/spec-prosecutor")
+    source = snapshot(repo / "plugins/spec-prosecutor/skills/spec-prosecutor")
     for host in ("codex-skill", "claude-code"):
         assert snapshot(repo / "dist" / host / "on/spec-prosecutor") == source
         disabled = repo / "dist" / host / "off/spec-prosecutor"
@@ -86,10 +90,75 @@ def main():
     run(*command, "remove", *options, "--cli", ok=False)
     assert snapshot(project) == before
     run("bash", "scripts/export-codex-skill.sh", "invalid", ok=False)
-    run("python3", "scripts/export-skill.py", "skills/spec-prosecutor", "on", ok=False)
-    assert snapshot(repo / "skills") == original
+    run("python3", "scripts/export-skill.py", "plugins/spec-prosecutor/skills/spec-prosecutor", "on", ok=False)
+    assert snapshot(repo / "plugins/spec-prosecutor/skills") == original
     for prefix, before in globals_before.items():
         assert snapshot(Path.home() / prefix / "skills/spec-prosecutor") == before
+
+    # A plugin replacement must not retain removed files from a previous build.
+    stale = repo / "dist/codex/on/spec-prosecutor/obsolete.txt"
+    stale.write_text("stale")
+    run("bash", "scripts/export-plugin.sh", "on")
+    assert not stale.exists()
+    assert list(stale.parent.parent.glob(".stage-*-previous/obsolete.txt"))
+    # Release contents are closed and reproducible; test the extracted source, too.
+    run("bash", "scripts/package-release.sh")
+    release = repo / "dist/release"
+    first = snapshot(release)
+    run("bash", "scripts/package-release.sh")
+    assert snapshot(release) == first
+    with zipfile.ZipFile(next(release.glob("*-plugin.zip"))) as archive:
+        names = archive.namelist()
+        assert "spec-prosecutor/plugin.json" in names
+        assert "spec-prosecutor/skills/spec-prosecutor/agents/openai.yaml" in names
+        assert not any("hooks/" in n or "tests/" in n or "__pycache__" in n for n in names)
+        extracted = scratch / "plugin-only"
+        archive.extractall(extracted)
+        assert snapshot(extracted / "spec-prosecutor") == snapshot(repo / "plugins/spec-prosecutor")
+    unpacked = scratch / "source-archive"
+    with tarfile.open(next(release.glob("*-source.tar.gz"))) as archive:
+        archive.extractall(unpacked, **({"filter": "data"} if sys.version_info >= (3, 12) else {}))
+    run(sys.executable, str(unpacked / "spec-prosecutor/scripts/sync-metadata.py"), "--check")
+    # Migration defaults to read-only, preserves other catalog entries and keeps full backups.
+    isolated_home = scratch / "isolated-home"
+    old_skill = isolated_home / ".agents/skills/spec-prosecutor"
+    shutil.copytree(repo / "plugins/spec-prosecutor/skills/spec-prosecutor", old_skill)
+    (old_skill / "personal-note.txt").write_text("preserve personal changes")
+    old_catalog = isolated_home / ".agents/plugins/marketplace.json"
+    old_catalog.parent.mkdir(parents=True)
+    unrelated = {"name": "another-plugin", "source": "./plugins/another-plugin"}
+    original_catalog = {"name": "personal", "plugins": [unrelated,
+                         {"name": "spec-prosecutor", "source": {"source": "local", "path": "/missing"}}]}
+    old_catalog.write_text(json.dumps(original_catalog))
+    migration = [sys.executable, str(repo / "scripts/migrate-install.py")]
+    env = dict(os.environ, HOME=str(isolated_home), USERPROFILE=str(isolated_home), PYTHONDONTWRITEBYTECODE="1")
+    before = snapshot(isolated_home)
+    subprocess.run(migration, env=env, check=True, capture_output=True)
+    assert snapshot(isolated_home) == before
+    subprocess.run([*migration, "--apply"], env=env, check=True, capture_output=True)
+    assert not old_skill.exists()
+    assert json.loads(old_catalog.read_text())["plugins"] == [unrelated]
+    backup = next((isolated_home / ".local/share/spec-prosecutor/backups").glob("legacy-*"))
+    assert json.loads((backup / "marketplace.json").read_text()) == original_catalog
+    assert (backup / ".agents/skills/spec-prosecutor/personal-note.txt").read_text() == "preserve personal changes"
+    after = snapshot(isolated_home)
+    subprocess.run([*migration, "--apply"], env=env, check=True, capture_output=True)
+    assert snapshot(isolated_home) == after
+    # CLI-only removal must parse independently without choosing or touching any host.
+    empty_home = scratch / "empty-home"
+    empty_home.mkdir()
+    result = subprocess.run([*command, "uninstall", "--cli"], cwd=repo,
+                            env=dict(os.environ, HOME=str(empty_home), USERPROFILE=str(empty_home)),
+                            text=True, capture_output=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    if os.name != "nt":
+        linked_project = scratch / "linked-project"
+        linked_project.mkdir()
+        (linked_project / ".agents").symlink_to(isolated_home / ".agents", target_is_directory=True)
+        result = subprocess.run([*migration, "--project", str(linked_project), "--apply"],
+                                env=env, text=True, capture_output=True)
+        assert result.returncode != 0 and "symbolic link" in result.stderr
+        assert snapshot(isolated_home) == after
     print(f"Packaging/install checks passed. Artifacts: {scratch}")
 
 

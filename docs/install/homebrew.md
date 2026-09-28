@@ -1,91 +1,13 @@
-# Homebrew Install
+# Homebrew（历史兼容）
 
-`Spec Prosecutor` can be distributed on macOS through a Homebrew tap.
-The recommended formula source is the GitHub tag archive for the main repository.
+原生插件安装不需要 Homebrew，也不需要本项目 CLI。使用 [README](../../README.md) 的两端市场安装命令。
 
-## Target Install Flow
+仓库保留 `Formula/spec-prosecutor.rb.template` 和 `scripts/render-homebrew-formula.sh`，供维护者发布独立 Skill 安装器。只有 tap 实际发布并验证后，才能提供其安装命令；本仓库不承诺外部 tap 当前可用。
 
-Once the release assets and tap are published, the install path will be:
-
-```bash
-brew tap zzl92105/tap
-brew install spec-prosecutor
-spec-prosecutor doctor
-spec-prosecutor init -g --mode off
-spec-prosecutor init -g --codex --mode off
-spec-prosecutor init --agent cursor --mode off --cursor-workspace /path/to/project
-```
-
-To enable normal PRD review in Codex/Claude Code (Cursor keeps its legacy phrase gate):
-
-```bash
-spec-prosecutor init -g --mode on
-spec-prosecutor init -g --codex --mode on
-spec-prosecutor init --agent cursor --mode on --cursor-workspace /path/to/project
-```
-
-## Tag Required
-
-Before rendering the formula:
-
-- push the source repository commit
-- create and push the version tag, for example `v0.1.2`
-- make sure the tagged commit is reachable on GitHub
-
-The formula renderer uses the Git tag and pinned commit revision directly.
-
-## Optional Release Archive
-
-This repository still includes release packaging helpers if you also want a standalone macOS archive:
-
-- `scripts/package-release.sh`
-- `scripts/render-homebrew-formula.sh`
-- `Formula/spec-prosecutor.rb.template`
-
-## Optional Packaging
-
-Build the macOS release archive:
-
-```bash
-bash scripts/package-release.sh
-```
-
-This generates files under `dist/release/`, including:
-
-- `spec-prosecutor-v<version>-macos.tar.gz`
-- `spec-prosecutor-v<version>-macos.tar.gz.sha256`
-
-## Formula Rendering
-
-After the GitHub repository and tag are pushed, render the formula with:
+生成 formula 前需存在与插件版本一致的 Git 标签：
 
 ```bash
 bash scripts/render-homebrew-formula.sh zzl92105 spec-prosecutor
 ```
 
-That writes:
-
-- `dist/release/homebrew/spec-prosecutor.rb`
-
-The rendered formula points to:
-
-```text
-https://github.com/zzl92105/spec-prosecutor.git
-```
-
-## Tap Publishing
-
-Recommended structure:
-
-```text
-zzl92105/homebrew-tap
-  Formula/
-    spec-prosecutor.rb
-```
-
-Then users can install with:
-
-```bash
-brew tap zzl92105/tap
-brew install spec-prosecutor
-```
+formula 固定标签与提交哈希。源码归档由 `bash scripts/package-release.sh` 输出至 `dist/release/`，名称为 `spec-prosecutor-v<version>-source.tar.gz`。

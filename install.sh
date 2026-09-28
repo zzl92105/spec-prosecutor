@@ -1,60 +1,37 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
-
-[[ "$(uname -s)" == "Darwin" ]] || {
-  echo "Spec Prosecutor installer currently supports macOS only." >&2
-  exit 1
-}
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_ROOT="${HOME}/.local/share/spec-prosecutor"
-BIN_DIR="${HOME}/.local/bin"
-TARGET_ROOT="${INSTALL_ROOT}/repo"
-BIN_TARGET="${BIN_DIR}/spec-prosecutor"
-INIT_ARGS=("$@")
-
-mkdir -p "$INSTALL_ROOT" "$BIN_DIR"
-rm -rf "$TARGET_ROOT"
-mkdir -p "$TARGET_ROOT"
-
-cp -R \
-  "$ROOT_DIR/.codex-plugin" \
-  "$ROOT_DIR/.claude-plugin" \
-  "$ROOT_DIR/.cursor-plugin" \
-  "$ROOT_DIR/Formula" \
-  "$ROOT_DIR/bin" \
-  "$ROOT_DIR/docs" \
-  "$ROOT_DIR/hooks" \
-  "$ROOT_DIR/install.sh" \
-  "$ROOT_DIR/scripts" \
-  "$ROOT_DIR/skills" \
-  "$ROOT_DIR/tests" \
-  "$ROOT_DIR/README.md" \
-  "$ROOT_DIR/.gitignore" \
-  "$TARGET_ROOT/"
-
-chmod +x "$TARGET_ROOT/bin/spec-prosecutor"
-ln -sf "$TARGET_ROOT/bin/spec-prosecutor" "$BIN_TARGET"
-
-cat <<EOF
-Spec Prosecutor installed for macOS.
-
-CLI:
-  $BIN_TARGET
-
-If ~/.local/bin is not on your PATH, add this to ~/.zshrc:
-  export PATH="\$HOME/.local/bin:\$PATH"
-
-Next steps:
-  spec-prosecutor doctor
-  spec-prosecutor add -g
-  spec-prosecutor add -g --codex
-  spec-prosecutor add --agent cursor --cursor-workspace /path/to/project
-  spec-prosecutor add -g --mode on
-  bash install.sh --codex --mode on
-EOF
-
-if [[ ${#INIT_ARGS[@]} -gt 0 ]]; then
-  SP_SKIP_VALIDATE_REPO=1 "$BIN_TARGET" init "${INIT_ARGS[@]}"
+python3 - "$ROOT_DIR" <<'PYTHON'
+import os
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+root = Path(sys.argv[1]).resolve()
+parent = Path.home() / ".local/share/spec-prosecutor"
+target = parent / "repo"
+binary = Path.home() / ".local/bin/spec-prosecutor"
+if binary.exists() or binary.is_symlink():
+    if not binary.is_symlink() or binary.resolve() != target / "bin/spec-prosecutor":
+        raise SystemExit(f"Refusing to replace unrelated command: {binary}")
+if root == target.resolve():
+    print("CLI is already running from its installation; source unchanged.")
+else:
+    parent.mkdir(parents=True, exist_ok=True)
+    stage = Path(tempfile.mkdtemp(prefix="stage-", dir=parent))
+    shutil.copytree(root, stage, dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns(".git", "dist", "__pycache__", ".venv"))
+    if target.exists() or target.is_symlink():
+        backup = parent / (stage.name + "-previous")
+        target.rename(backup)
+        print(f"Previous CLI preserved at {backup}")
+    stage.rename(target)
+binary.parent.mkdir(parents=True, exist_ok=True)
+if not binary.is_symlink():
+    binary.symlink_to(target / "bin/spec-prosecutor")
+print(f"Standalone compatibility CLI: {binary}")
+print("Native plugins use codex/claude plugin commands; see README.md.")
+PYTHON
+if [[ $# -gt 0 ]]; then
+  bash "$HOME/.local/share/spec-prosecutor/repo/bin/spec-prosecutor" init "$@"
 fi

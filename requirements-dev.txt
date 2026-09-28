@@ -1,0 +1,2 @@
+# Validation only. Installing or using the plugin needs no Python packages.
+PyYAML==6.0.2

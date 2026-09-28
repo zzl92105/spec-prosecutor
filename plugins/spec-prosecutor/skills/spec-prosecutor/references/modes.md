@@ -1,9 +1,9 @@
 # Activation Modes
 
-The source skill and default exports are **on** (enabled).
+The source Skill is enabled. Native plugin activation is controlled by the host plugin manager. The legacy standalone exports additionally support `on` and `off`; those CLI switches do not control a native plugin.
 
 - Codex: `$spec-prosecutor <file-or-directory>`.
-- Claude Code: `/spec-prosecutor <file-or-directory>`; a plugin may use `/spec-prosecutor:spec-prosecutor`.
+- Claude Code: `/spec-prosecutor:spec-prosecutor <file-or-directory>` for a native plugin; `/spec-prosecutor` for a standalone copy.
 - Natural-language PRD review requests and the legacy alias `启动sp` are supported. The alias is not a mandatory gate. Merely discussing installation or mentioning the name is not a review request.
 - `off` exports contain a disabled entrypoint. They do not review and explain how to enable the skill. Codex also receives `allow_implicit_invocation: false` in that export.
 

@@ -23,12 +23,12 @@ root = Path(sys.argv[1])
 slug = sys.argv[2]
 repo_url = sys.argv[3]
 
-plugin_path = root / ".codex-plugin/plugin.json"
+plugin_path = root / "plugins/spec-prosecutor/plugin.json"
 plugin = json.loads(plugin_path.read_text())
 plugin["repository"] = repo_url
 plugin["homepage"] = repo_url
 plugin.setdefault("author", {})["url"] = repo_url
-plugin["interface"]["websiteURL"] = repo_url
+plugin["extensions"]["com.openai"]["interface"]["websiteURL"] = repo_url
 plugin_path.write_text(json.dumps(plugin, indent=2, ensure_ascii=False) + "\n")
 
 files = [
@@ -43,14 +43,5 @@ for path in files:
     path.write_text(text)
 PY
 
-if [[ -f "$ROOT_DIR/dist/release/spec-prosecutor-v$(python3 - <<'PY' "$ROOT_DIR/.codex-plugin/plugin.json"
-import json
-import sys
-from pathlib import Path
-print(json.loads(Path(sys.argv[1]).read_text())["version"])
-PY
-)-macos.tar.gz" ]]; then
-  bash "$ROOT_DIR/scripts/render-homebrew-formula.sh" "$OWNER" "$REPO" >/dev/null
-fi
-
+python3 "$ROOT_DIR/scripts/sync-metadata.py"
 echo "Updated repository metadata for $SLUG"
