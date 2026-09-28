@@ -16,8 +16,9 @@ BASH = shutil.which("bash")
 if os.name == "nt":
     # Windows subprocess search can prefer System32/bash.exe (WSL). Use Git Bash explicitly.
     git = shutil.which("git")
-    candidate = Path(git).parent.parent / "bin/bash.exe" if git else None
-    assert candidate and candidate.is_file(), "Windows checks require Git for Windows (Git Bash)"
+    candidates = [parent / "bin/bash.exe" for parent in Path(git).parents] if git else []
+    candidate = next((path for path in candidates if path.is_file()), None)
+    assert candidate, f"Windows checks require Git Bash; Git was found at {git}"
     BASH = str(candidate)
 assert BASH, "Bash is required for compatibility installer tests"
 
