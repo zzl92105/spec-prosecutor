@@ -43,7 +43,7 @@ def export(mode):
 
 
 def release():
-    version = json.loads((PLUGIN / "plugin.json").read_text())["version"]
+    version = json.loads((PLUGIN / "plugin.json").read_text(encoding="utf-8"))["version"]
     output = ROOT / "dist/release"
     output.mkdir(parents=True, exist_ok=True)
     archive = output / f"spec-prosecutor-v{version}-plugin.zip"

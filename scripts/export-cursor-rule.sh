@@ -20,9 +20,9 @@ if [[ "$MODE" == "on" ]]; then
 import sys
 from pathlib import Path
 path = Path(sys.argv[1])
-text = path.read_text()
+text = path.read_text(encoding="utf-8")
 prefix = "# Auto Mode Trigger\n\nOnly activate when the prompt contains the exact phrase `启动sp`.\n\n"
-path.write_text(prefix + text)
+path.write_text(prefix + text, encoding="utf-8")
 PY
 else
   cat > "$DIST_DIR/spec-prosecutor.mdc" <<'EOF'

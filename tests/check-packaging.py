@@ -12,6 +12,15 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+BASH = shutil.which("bash")
+if os.name == "nt":
+    # Windows subprocess search can prefer System32/bash.exe (WSL). Use Git Bash explicitly.
+    git = shutil.which("git")
+    candidate = Path(git).parent.parent / "bin/bash.exe" if git else None
+    assert candidate and candidate.is_file(), "Windows checks require Git for Windows (Git Bash)"
+    BASH = str(candidate)
+assert BASH, "Bash is required for compatibility installer tests"
+
 
 
 def snapshot(path):
@@ -29,31 +38,31 @@ def main():
     original = snapshot(repo / "plugins/spec-prosecutor/skills")
 
     def run(*args, ok=True):
-        result = subprocess.run(args, cwd=repo, text=True, capture_output=True)
+        result = subprocess.run(args, cwd=repo, text=True, encoding="utf-8", capture_output=True)
         assert (result.returncode == 0) == ok, result.stdout + result.stderr
         return result
 
     for path in [repo / "bin/spec-prosecutor", *repo.glob("scripts/*.sh"), repo / "hooks/user-prompt-gate"]:
-        run("bash", "-n", str(path))
-    run("bash", "scripts/export-all.sh")
+        run(BASH, "-n", path.as_posix())
+    run(BASH, "scripts/export-all.sh")
     source = snapshot(repo / "plugins/spec-prosecutor/skills/spec-prosecutor")
     for host in ("codex-skill", "claude-code"):
         assert snapshot(repo / "dist" / host / "on/spec-prosecutor") == source
         disabled = repo / "dist" / host / "off/spec-prosecutor"
-        assert "disabled in `off` mode" in (disabled / "SKILL.md").read_text()
-        assert "allow_implicit_invocation: false" in (disabled / "agents/openai.yaml").read_text()
+        assert "disabled in `off` mode" in (disabled / "SKILL.md").read_text(encoding="utf-8")
+        assert "allow_implicit_invocation: false" in (disabled / "agents/openai.yaml").read_text(encoding="utf-8")
         assert (disabled / "references/checklists.md").is_file()
     assert snapshot(repo / "dist/codex/on/spec-prosecutor/skills/spec-prosecutor") == source
     legacy = repo / "dist/codex-skill/on/spec-prosecutor/README.md"
     legacy.write_text("Old mandatory phrase-gate instructions")
-    run("bash", "scripts/export-codex-skill.sh", "on")
-    assert "Old mandatory" not in legacy.read_text()
-    plugin = json.loads((repo / "dist/codex/on/spec-prosecutor/.codex-plugin/plugin.json").read_text())
+    run(BASH, "scripts/export-codex-skill.sh", "on")
+    assert "Old mandatory" not in legacy.read_text(encoding="utf-8")
+    plugin = json.loads((repo / "dist/codex/on/spec-prosecutor/.codex-plugin/plugin.json").read_text(encoding="utf-8"))
     assert "hooks" not in plugin
-    assert json.loads((repo / "hooks/hooks.json").read_text()) == {"hooks": {}}
+    assert json.loads((repo / "hooks/hooks.json").read_text(encoding="utf-8")) == {"hooks": {}}
     for prompt in ("启动sp 审查 docs/", "$spec-prosecutor docs/", "/spec-prosecutor docs/", "How do I install spec-prosecutor?"):
-        result = subprocess.run(["bash", "hooks/user-prompt-gate"], cwd=repo,
-                                input=json.dumps({"prompt": prompt}), text=True, capture_output=True)
+        result = subprocess.run([BASH, "hooks/user-prompt-gate"], cwd=repo,
+                                input=json.dumps({"prompt": prompt}), text=True, encoding="utf-8", capture_output=True)
         assert result.returncode == 0 and result.stdout == ""
 
     project = scratch / "项目 with spaces"
@@ -62,8 +71,8 @@ def main():
     # Confirm explicit project installation cannot mutate global copies.
     globals_before = {prefix: snapshot(Path.home() / prefix / "skills/spec-prosecutor")
                       for prefix in (".agents", ".claude")}
-    command = ["bash", "bin/spec-prosecutor"]
-    options = ["--codex", "--claude-code", "--project", str(project)]
+    command = [BASH, "bin/spec-prosecutor"]
+    options = ["--codex", "--claude-code", "--project", project.as_posix()]
     run(*command, "add", *options)
     for target in targets:
         installed = snapshot(target)
@@ -72,24 +81,24 @@ def main():
         (target / "personal-note.txt").write_text("keep me")
     run(*command, "off", *options)
     for target in targets:
-        assert "disabled in `off` mode" in (target / "SKILL.md").read_text()
+        assert "disabled in `off` mode" in (target / "SKILL.md").read_text(encoding="utf-8")
     run(*command, "on", *options)
     for target in targets:
         installed = snapshot(target)
         installed.pop("personal-note.txt")
         installed.pop("README.md", None)
         assert installed == source
-        assert (target / "personal-note.txt").read_text() == "keep me"
+        assert (target / "personal-note.txt").read_text(encoding="utf-8") == "keep me"
 
     before = snapshot(project)
     for bad in (["--global"], ["--all"], ["--mode", "invalid"]):
         run(*command, "add", *options, *bad, ok=False)
-    run(*command, "add", "--project", str(project), ok=False)
-    run(*command, "add", "--codex", "--project", str(scratch / "missing"), ok=False)
+    run(*command, "add", "--project", project.as_posix(), ok=False)
+    run(*command, "add", "--codex", "--project", (scratch / "missing").as_posix(), ok=False)
     run(*command, "add", "--codex", "--project", ok=False)
     run(*command, "remove", *options, "--cli", ok=False)
     assert snapshot(project) == before
-    run("bash", "scripts/export-codex-skill.sh", "invalid", ok=False)
+    run(BASH, "scripts/export-codex-skill.sh", "invalid", ok=False)
     run("python3", "scripts/export-skill.py", "plugins/spec-prosecutor/skills/spec-prosecutor", "on", ok=False)
     assert snapshot(repo / "plugins/spec-prosecutor/skills") == original
     for prefix, before in globals_before.items():
@@ -98,14 +107,14 @@ def main():
     # A plugin replacement must not retain removed files from a previous build.
     stale = repo / "dist/codex/on/spec-prosecutor/obsolete.txt"
     stale.write_text("stale")
-    run("bash", "scripts/export-plugin.sh", "on")
+    run(BASH, "scripts/export-plugin.sh", "on")
     assert not stale.exists()
     assert list(stale.parent.parent.glob(".stage-*-previous/obsolete.txt"))
     # Release contents are closed and reproducible; test the extracted source, too.
-    run("bash", "scripts/package-release.sh")
+    run(BASH, "scripts/package-release.sh")
     release = repo / "dist/release"
     first = snapshot(release)
-    run("bash", "scripts/package-release.sh")
+    run(BASH, "scripts/package-release.sh")
     assert snapshot(release) == first
     with zipfile.ZipFile(next(release.glob("*-plugin.zip"))) as archive:
         names = archive.namelist()
@@ -137,10 +146,10 @@ def main():
     assert snapshot(isolated_home) == before
     subprocess.run([*migration, "--apply"], env=env, check=True, capture_output=True)
     assert not old_skill.exists()
-    assert json.loads(old_catalog.read_text())["plugins"] == [unrelated]
+    assert json.loads(old_catalog.read_text(encoding="utf-8"))["plugins"] == [unrelated]
     backup = next((isolated_home / ".local/share/spec-prosecutor/backups").glob("legacy-*"))
-    assert json.loads((backup / "marketplace.json").read_text()) == original_catalog
-    assert (backup / ".agents/skills/spec-prosecutor/personal-note.txt").read_text() == "preserve personal changes"
+    assert json.loads((backup / "marketplace.json").read_text(encoding="utf-8")) == original_catalog
+    assert (backup / ".agents/skills/spec-prosecutor/personal-note.txt").read_text(encoding="utf-8") == "preserve personal changes"
     after = snapshot(isolated_home)
     subprocess.run([*migration, "--apply"], env=env, check=True, capture_output=True)
     assert snapshot(isolated_home) == after
@@ -149,14 +158,14 @@ def main():
     empty_home.mkdir()
     result = subprocess.run([*command, "uninstall", "--cli"], cwd=repo,
                             env=dict(os.environ, HOME=str(empty_home), USERPROFILE=str(empty_home)),
-                            text=True, capture_output=True)
+                            text=True, encoding="utf-8", capture_output=True)
     assert result.returncode == 0, result.stdout + result.stderr
     if os.name != "nt":
         linked_project = scratch / "linked-project"
         linked_project.mkdir()
         (linked_project / ".agents").symlink_to(isolated_home / ".agents", target_is_directory=True)
         result = subprocess.run([*migration, "--project", str(linked_project), "--apply"],
-                                env=env, text=True, capture_output=True)
+                                env=env, text=True, encoding="utf-8", capture_output=True)
         assert result.returncode != 0 and "symbolic link" in result.stderr
         assert snapshot(isolated_home) == after
     print(f"Packaging/install checks passed. Artifacts: {scratch}")

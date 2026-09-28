@@ -30,7 +30,7 @@ VERSION="$(python3 - <<'PY' "$ROOT_DIR/plugins/spec-prosecutor/plugin.json"
 import json
 import sys
 from pathlib import Path
-print(json.loads(Path(sys.argv[1]).read_text())["version"])
+print(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["version"])
 PY
 )"
 

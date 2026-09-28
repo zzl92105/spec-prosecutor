@@ -14,7 +14,7 @@ VERSION="$(python3 - <<'PY' "$ROOT_DIR/plugins/spec-prosecutor/plugin.json"
 import json
 import sys
 from pathlib import Path
-print(json.loads(Path(sys.argv[1]).read_text())["version"])
+print(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["version"])
 PY
 )"
 
@@ -31,7 +31,7 @@ python3 - <<'PY' "$FORMULA_TEMPLATE" "$FORMULA_OUTPUT_PATH" "$HOMEPAGE" "$URL" "
 import sys
 from pathlib import Path
 
-template = Path(sys.argv[1]).read_text()
+template = Path(sys.argv[1]).read_text(encoding="utf-8")
 output = Path(sys.argv[2])
 homepage = sys.argv[3]
 url = sys.argv[4]

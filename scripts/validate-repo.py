@@ -23,7 +23,7 @@ for path in PLUGIN.rglob('SKILL.md'):
     header = yaml.safe_load(text.split('---', 2)[1])
     assert header['name'] == path.parent.name
     assert isinstance(header['description'], str) and header['description'].strip()
-    agent = yaml.safe_load((path.parent / 'agents/openai.yaml').read_text())
+    agent = yaml.safe_load((path.parent / 'agents/openai.yaml').read_text(encoding="utf-8"))
     assert agent['policy']['allow_implicit_invocation'] is True
     assert '$spec-prosecutor' in agent['interface']['default_prompt']
 # Local Markdown links in maintained docs and the shipped plugin must resolve.
