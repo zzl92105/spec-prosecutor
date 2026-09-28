@@ -16,7 +16,7 @@ spec-prosecutor init -g --codex --mode off
 spec-prosecutor init --agent cursor --mode off --cursor-workspace /path/to/project
 ```
 
-For phrase-gated auto mode:
+To enable normal PRD review in Codex/Claude Code (Cursor keeps its legacy phrase gate):
 
 ```bash
 spec-prosecutor init -g --mode on

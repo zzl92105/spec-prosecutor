@@ -11,7 +11,6 @@ if [[ "$MODE" != "off" && "$MODE" != "on" ]]; then
   exit 1
 fi
 
-rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
 cp "$ROOT_DIR/docs/platform-guides/cursor.mdc" "$DIST_DIR/spec-prosecutor.mdc"

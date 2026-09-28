@@ -1,40 +1,5 @@
-# Spec Prosecutor For Claude Code
+# Claude Code
 
-This file is a compatibility guide.
-The plugin-native source of truth lives in `skills/spec-prosecutor/`.
+The shared instructions live in [SKILL.md](../../skills/spec-prosecutor/SKILL.md). Review a PRD, pasted requirements or a directory using `/spec-prosecutor`; follow the shared evidence, scope and report rules. Plugin commands may be namespaced. `启动sp` is an optional alias.
 
-## Purpose
-
-Review one explicitly referenced Markdown PRD before implementation starts.
-
-## Install Shape
-
-Claude Code skills are easiest to consume as a self-contained folder:
-
-```text
-~/.claude/skills/spec-prosecutor/
-  SKILL.md
-  references/
-```
-
-## Operating Rules
-
-- Read only the explicitly provided Markdown file by default.
-- Judge implementation readiness, not business value.
-- Report aggressively, but keep inferred risks labeled.
-- Use prosecutor framing in headings and professional language in explanations.
-
-## Required Finding Fields
-
-- source excerpt
-- charge
-- severity
-- assessment
-- problem
-- implementation risk
-- follow-up question
-
-## Assessment Labels
-
-- `Confirmed Issue`
-- `Likely Risk`
+See [installation](../install/claude-code.md). Do not duplicate the review contract here.

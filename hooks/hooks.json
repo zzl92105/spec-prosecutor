@@ -1,15 +1,1 @@
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CODEX_PLUGIN_ROOT}/hooks/run-hook.cmd\" user-prompt-gate",
-            "async": false
-          }
-        ]
-      }
-    ]
-  }
-}
+{"hooks": {}}

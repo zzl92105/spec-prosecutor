@@ -1,54 +1,17 @@
-# Codex Local Install
+# Codex Installation
 
-`Spec Prosecutor` is installed into Codex CLI as a local skill with one primary skill:
-
-- [skills/spec-prosecutor/SKILL.md](../../skills/spec-prosecutor/SKILL.md)
-
-## Modes
-
-- `off`: disabled mode; the skill is installed but should not review
-- `on`: phrase-gated mode; the trigger phrase must be present
-
-## Expected Local Layout
-
-Codex local skills are installed with this home-directory layout:
-
-```text
-~/.agents/skills/spec-prosecutor/
-  SKILL.md
-  references/
-```
-
-## Recommended macOS CLI Flow
+From this repository:
 
 ```bash
-bash install.sh --codex --mode off
-bash install.sh --codex --mode on
-spec-prosecutor uninstall --codex --cli
+bash bin/spec-prosecutor add --codex --project /path/to/project
 ```
 
-## Manual Installation Steps
+Or copy the complete `skills/spec-prosecutor/` folder into the project's `.agents/skills/`. For user-wide use, copy it into `~/.agents/skills/` instead.
 
-1. Export the Codex skill payload:
+The folder contains `SKILL.md`, `references/`, and optional UI/policy metadata at `agents/openai.yaml`. Keep the whole folder so relative references work. Restart the session if changes are not discovered.
 
-```bash
-bash scripts/export-codex-skill.sh off
-bash scripts/export-codex-skill.sh on
-```
+Invoke `$spec-prosecutor` with a document or directory. `启动sp` is an optional alias. No plugin or hook is required.
 
-2. Choose one exported directory and copy it to `~/.agents/skills/spec-prosecutor/`:
+Existing CLI users can run `spec-prosecutor on --codex` or `spec-prosecutor off --codex`; add `--project /path/to/project` for a project-scoped installation.
 
-- `dist/codex-skill/off/spec-prosecutor/`
-- `dist/codex-skill/on/spec-prosecutor/`
-
-3. Start a new Codex session. Existing sessions keep the old skill list snapshot.
-
-## Trigger Phrase For On Mode
-
-`启动sp`
-
-## Repo Assets
-
-- Skill source: [skills/spec-prosecutor/SKILL.md](../../skills/spec-prosecutor/SKILL.md)
-- Skill UI metadata: [skills/spec-prosecutor/agents/openai.yaml](../../skills/spec-prosecutor/agents/openai.yaml)
-- Export script: [scripts/export-codex-skill.sh](../../scripts/export-codex-skill.sh)
+[Official Codex documentation](https://learn.chatgpt.com/docs/build-skills)

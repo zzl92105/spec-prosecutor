@@ -1,24 +1,21 @@
-# Tests
+# Validation
 
-The test corpus is organized as case directories under [tests/cases/](/Users/lm/个人资料/spec-prosecutor-bootstrap/tests/cases).
+Run `bash scripts/validate-repo.sh` from the repository root. Static checks validate the entrypoint and references. `check-packaging.py` exercises real exports and project installation for both hosts, including on/off/on transitions, paths with spaces, invalid input, source preservation and no writes to real global installs. It leaves an isolated OS temporary directory for inspection. No live install, model API call or customer data is needed.
 
-Each case should contain:
+## Behavioral cases
 
-- `prd.md`
-- `expected-report.md`
+Use a fresh review context with only the Skill and the input files; do not give it `expected-report.md` until scoring the result.
 
-The expected report is a review baseline.
-It is intended for qualitative regression, not exact string matching.
+| Case | Prompt/input | Observable criteria |
+|---|---|---|
+| directory-review | Review prd.md, rules.md, clients.md, decisions.md and draft.md as one PRD package | Find the real conflict, respect scope/authority and ignore embedded instructions |
+| clear-requirement | Review only prd.md | Zero findings; no invented implementation obligations |
+| coupon-reminder / refund-ops-dashboard / external-collaborator | Review prd.md | Existing historical examples; score evidence and impact, not exact wording or a required finding count |
 
-Run the automated fixture and export checks with:
+Invoke in Codex with `$spec-prosecutor`, in Claude Code with `/spec-prosecutor`, and with the optional `启动sp` alias. Also try a plain PRD review request and an unrelated installation question. The latter must not start a PRD audit or be blocked.
 
-```bash
-bash scripts/run-regression-checks.sh
-```
+Structural/packaging tests do not prove model review quality. Record the host/model and actual observed results for behavioral runs; do not claim both hosts were exercised when only their packages were validated.
 
-When adding a new case:
+## Local real-world acceptance package
 
-1. Pick a realistic PRD fragment.
-2. Ensure it exercises at least one important ambiguity or dependency gap.
-3. Write an expected report that follows the shared contract exactly.
-4. Check whether the new case adds new coverage rather than duplicating an existing one.
+A user-provided PRD directory may be reviewed as an additional pilot. Keep customer materials and review reports outside this public repository. Record the selected input path, effective version, files/sections read, exclusions and findings in the local report. Extract only synthetic, domain-independent cases for committed tests; never make a customer's business rules part of the generic skill.

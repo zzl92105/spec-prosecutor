@@ -1,62 +1,45 @@
-# Spec Prosecutor Report
+# PRD Review Report
 
-`Mode preamble line here`
+Translate headings and field labels into the user's language. Keep this order; omit empty category rows and write “None” in empty severity groups. Do not fill placeholders with invented issues.
 
 ## Indictment Summary
 
-- Implementation readiness: `Low | Medium | High`
-- Blockers: `N`
-- High Risk Items: `N`
-- Notices: `N`
+- Reviewed target and effective version/scope.
+- Implementation readiness: Low / Medium / High / Not assessed, with reason and affected flows.
+- Unique finding counts: Blocker / High Risk / Notice.
+
+## Coverage and Authority
+
+- Files/sections actually read; supporting sources and their authority.
+- Excluded historical versions, unapproved drafts, duplicate exports and prototype limitations.
+- Unread/unsupported material and unavailable dependencies. Label partial reviews explicitly.
 
 ## Blockers
 
-### 1. `[Charge]` Short title
-- Assessment: `Confirmed Issue | Likely Risk`
-- Source excerpt: `...`
-- Severity: `Blocker`
-- Problem: ...
-- Implementation risk: ...
-- Suggested follow-up question: ...
-
 ## High Risk Items
-
-### 1. `[Charge]` Short title
-- Assessment: `Confirmed Issue | Likely Risk`
-- Source excerpt: `...`
-- Severity: `High Risk`
-- Problem: ...
-- Implementation risk: ...
-- Suggested follow-up question: ...
 
 ## Notices
 
-### 1. `[Charge]` Short title
-- Assessment: `Confirmed Issue | Likely Risk`
-- Source excerpt: `...`
-- Severity: `Notice`
-- Problem: ...
-- Implementation risk: ...
-- Suggested follow-up question: ...
+Within the appropriate severity group, use this shape for each finding:
+
+### SP-001 — [Category] Concrete title
+
+- Assessment: Confirmed Issue / Likely Risk.
+- Severity: Blocker / High Risk / Notice.
+- Source: file and verified lines/heading (or page/cell); list both sources for a conflict.
+- Source excerpt: short, exact relevant text.
+- Problem: contradiction, incorrect result, or two materially different interpretations.
+- Implementation risk: triggering scenario, affected actor/flow and consequence; state assumptions.
+- Suggested follow-up question: one focused decision. Any proposed wording is an option, not a settled business rule.
 
 ## Category Summary
 
-- Ambiguity: `N`
-- Vagueness: `N`
-- Inaccurate Definition: `N`
-- Missing Scenarios: `N`
-- Unverifiable Requirement: `N`
-- Missing Implementation Dependency: `N`
-- Unclosed Interaction Details: `N`
-- Data Structure & Field Definition: `N`
-- Performance & Capacity Requirements: `N`
-- Security & Permission Requirements: `N`
-- Compatibility & Migration Requirements: `N`
+Count unique findings by primary category. Totals must match the summary.
+
+## Known Pending Decisions
+
+Reference existing decision IDs and their affected phases. Do not count them again as newly found defects; identify a newly uncovered consequence separately only when supported.
 
 ## Questions To Confirm Immediately
 
-1. ...
-2. ...
-3. ...
-4. ...
-5. ...
+Prioritize questions by impact and reference finding/decision IDs. No minimum count. If none remain within the reviewed scope, say so.

@@ -1,12 +1,9 @@
-# Test Cases
+# Cases
 
-Each directory under this folder is one regression fixture.
+Each case has a `prd.md` input and an `expected-report.md` rubric or historical report. Directory cases have additional named input files. Expected reports are evaluation material, not source requirements.
 
-## Current Cases
+- [Directory review](directory-review/): real conflict, draft, known decision and embedded untrusted instruction.
+- [Clear requirement](clear-requirement/): negative control; no requirement defects expected.
+- [Coupon reminder](coupon-reminder/), [refund dashboard](refund-ops-dashboard/), [external collaborator](external-collaborator/): historical baselines; interpret with the current evidence contract.
 
-- [coupon-reminder/](/Users/lm/个人资料/spec-prosecutor-bootstrap/tests/cases/coupon-reminder)
-  E-commerce reminder PRD with vague timing, targeting, retry, and monitoring language.
-- [refund-ops-dashboard/](/Users/lm/个人资料/spec-prosecutor-bootstrap/tests/cases/refund-ops-dashboard)
-  Internal dashboard PRD with missing dependencies around audit, permissions, and state transitions.
-- [external-collaborator/](/Users/lm/个人资料/spec-prosecutor-bootstrap/tests/cases/external-collaborator)
-  Access-control PRD with permission scope, lifecycle, and governance gaps.
+See [validation guidance](../README.md).

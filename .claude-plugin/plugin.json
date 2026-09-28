@@ -1,6 +1,6 @@
 {
   "name": "spec-prosecutor",
-  "description": "PRD review plugin for engineers before implementation starts.",
+  "description": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
   "version": "0.1.2",
   "author": {
     "name": "len"

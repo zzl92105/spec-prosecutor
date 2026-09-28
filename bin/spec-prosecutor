@@ -13,7 +13,8 @@ while [[ -L "$SELF_PATH" ]]; do
 done
 
 ROOT_DIR="$(cd "$(dirname "$SELF_PATH")/.." && pwd)"
-DEFAULT_MODE="off"
+DEFAULT_MODE="on"
+PROJECT_DIR=""
 DEFAULT_CURSOR_WORKSPACE="$PWD"
 TRIGGER="启动sp"
 CLI_INSTALL_ROOT="${HOME}/.local/share/spec-prosecutor"
@@ -38,12 +39,12 @@ usage() {
 spec-prosecutor ${VERSION}
 
 Usage:
-  spec-prosecutor init [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--cursor-workspace PATH]
-  spec-prosecutor add [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--cursor-workspace PATH]
-  spec-prosecutor on [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
-  spec-prosecutor off [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
-  spec-prosecutor uninstall [--cli] [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
-  spec-prosecutor remove [--cli] [-g|--global] [--codex] [--agent AGENT] [--all] [--cursor-workspace PATH]
+  spec-prosecutor init [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--project PATH] [--cursor-workspace PATH]
+  spec-prosecutor add [-g|--global] [--codex] [--agent AGENT] [--all] [--mode off|on] [--project PATH] [--cursor-workspace PATH]
+  spec-prosecutor on [-g|--global] [--codex] [--agent AGENT] [--all] [--project PATH] [--cursor-workspace PATH]
+  spec-prosecutor off [-g|--global] [--codex] [--agent AGENT] [--all] [--project PATH] [--cursor-workspace PATH]
+  spec-prosecutor uninstall [--cli] [-g|--global] [--codex] [--agent AGENT] [--all] [--project PATH] [--cursor-workspace PATH]
+  spec-prosecutor remove [--cli] [-g|--global] [--codex] [--agent AGENT] [--all] [--project PATH] [--cursor-workspace PATH]
   spec-prosecutor export [off|on]
   spec-prosecutor doctor
   spec-prosecutor status
@@ -63,6 +64,7 @@ Commands:
   version    Print the installed Spec Prosecutor version.
 
 Examples:
+  bash bin/spec-prosecutor add --codex --claude-code --project /path/to/project
   bash install.sh --codex --mode on       # CLI + Codex
   spec-prosecutor init -g                     # Claude Code
   spec-prosecutor add -g --mode on
@@ -119,9 +121,8 @@ ensure_target_selected() {
 copy_dir() {
   local src="$1"
   local dest="$2"
-  rm -rf "$dest"
-  mkdir -p "$(dirname "$dest")"
-  cp -R "$src" "$dest"
+  mkdir -p "$dest"
+  cp -R "$src/." "$dest/"
 }
 
 resolve_codex_marketplace_path() {
@@ -204,7 +205,7 @@ PY
 
 install_codex() {
   local mode="$1"
-  local dest="$HOME/.agents/skills/spec-prosecutor"
+  local dest="${PROJECT_DIR:-$HOME}/.agents/skills/spec-prosecutor"
   bash "$ROOT_DIR/scripts/export-codex-skill.sh" "$mode" >/dev/null
   copy_dir "$ROOT_DIR/dist/codex-skill/$mode/spec-prosecutor" "$dest"
   echo "Installed Codex skill to $dest ($mode mode)"
@@ -212,7 +213,7 @@ install_codex() {
 
 install_claude() {
   local mode="$1"
-  local dest="$HOME/.claude/skills/spec-prosecutor"
+  local dest="${PROJECT_DIR:-$HOME}/.claude/skills/spec-prosecutor"
   bash "$ROOT_DIR/scripts/export-claude-code-skill.sh" "$mode" >/dev/null
   copy_dir "$ROOT_DIR/dist/claude-code/$mode/spec-prosecutor" "$dest"
   echo "Installed Claude Code skill to $dest ($mode mode)"
@@ -231,7 +232,7 @@ install_cursor() {
 }
 
 uninstall_codex() {
-  local dest="$HOME/.agents/skills/spec-prosecutor"
+  local dest="${PROJECT_DIR:-$HOME}/.agents/skills/spec-prosecutor"
   if [[ -e "$dest" ]]; then
     rm -rf "$dest"
     echo "Removed Codex skill from $dest"
@@ -241,7 +242,7 @@ uninstall_codex() {
 }
 
 uninstall_claude() {
-  local dest="$HOME/.claude/skills/spec-prosecutor"
+  local dest="${PROJECT_DIR:-$HOME}/.claude/skills/spec-prosecutor"
   if [[ -e "$dest" ]]; then
     rm -rf "$dest"
     echo "Removed Claude Code skill from $dest"
@@ -292,7 +293,7 @@ Install targets:
   Claude Code: $HOME/.claude/skills/spec-prosecutor
   Cursor:      <workspace>/.cursor/rules/spec-prosecutor.mdc
 
-Trigger phrase for on mode:
+Optional legacy alias (Codex and Claude Code):
   $TRIGGER
 
 Supported agents:
@@ -310,7 +311,7 @@ EOF
 
   if [[ "$mode" == "on" ]]; then
     cat <<EOF
-  Trigger phrase:
+  Optional legacy alias (Codex and Claude Code):
     $TRIGGER
 EOF
   fi
@@ -360,6 +361,12 @@ case "$command" in
           [[ $# -gt 0 ]] || die "--mode requires off or on"
           MODE="$1"
           ;;
+        --project)
+          shift
+          [[ $# -gt 0 && -n "$1" ]] || die "--project requires a path"
+          [[ -d "$1" ]] || die "Project directory does not exist: $1"
+          PROJECT_DIR="$(cd "$1" && pwd)"
+          ;;
         --cursor-workspace)
           shift
           [[ $# -gt 0 ]] || die "--cursor-workspace requires a path"
@@ -375,10 +382,15 @@ case "$command" in
     if [[ "$GLOBAL_TARGET" == true && "$TARGET_CODEX" == false && "$TARGET_CLAUDE" == false && "$TARGET_CURSOR" == false && "$TARGET_ALL" == false ]]; then
       TARGET_CLAUDE=true
     fi
+    if [[ -n "$PROJECT_DIR" ]]; then
+      [[ "$GLOBAL_TARGET" == false ]] || die "--project and --global cannot be combined"
+      [[ "$TARGET_ALL" == false && "$TARGET_CURSOR" == false ]] || die "--project supports --codex and --claude-code only"
+      [[ "$TARGET_CODEX" == true || "$TARGET_CLAUDE" == true ]] || die "Choose --codex and/or --claude-code with --project"
+    fi
     ensure_target_selected
     [[ ! "$TARGET_CURSOR" == true || -d "$CURSOR_WORKSPACE" ]] || die "Cursor workspace does not exist: $CURSOR_WORKSPACE"
     if [[ "${SP_SKIP_VALIDATE_REPO:-$DEFAULT_SKIP_VALIDATE_REPO}" != "1" ]]; then
-      "$ROOT_DIR/scripts/validate-repo.sh" >/dev/null
+      bash "$ROOT_DIR/scripts/validate-repo.sh" --static >/dev/null
     fi
     [[ "$TARGET_CODEX" == true ]] && install_codex "$MODE"
     [[ "$TARGET_CLAUDE" == true ]] && install_claude "$MODE"
@@ -408,6 +420,12 @@ case "$command" in
           [[ $# -gt 0 ]] || die "--agent requires a value"
           set_target_by_agent "$1"
           ;;
+        --project)
+          shift
+          [[ $# -gt 0 && -n "$1" ]] || die "--project requires a path"
+          [[ -d "$1" ]] || die "Project directory does not exist: $1"
+          PROJECT_DIR="$(cd "$1" && pwd)"
+          ;;
         --cursor-workspace)
           shift
           [[ $# -gt 0 ]] || die "--cursor-workspace requires a path"
@@ -422,7 +440,13 @@ case "$command" in
     if [[ "$GLOBAL_TARGET" == true && "$TARGET_CODEX" == false && "$TARGET_CLAUDE" == false && "$TARGET_CURSOR" == false && "$TARGET_ALL" == false ]]; then
       TARGET_CLAUDE=true
     fi
+    if [[ -n "$PROJECT_DIR" ]]; then
+      [[ "$GLOBAL_TARGET" == false ]] || die "--project and --global cannot be combined"
+      [[ "$TARGET_ALL" == false && "$TARGET_CURSOR" == false ]] || die "--project supports --codex and --claude-code only"
+      [[ "$TARGET_CODEX" == true || "$TARGET_CLAUDE" == true ]] || die "Choose --codex and/or --claude-code with --project"
+    fi
     ensure_target_selected
+    [[ -z "$PROJECT_DIR" || "$TARGET_CLI" == false ]] || die "--cli cannot be combined with --project"
     [[ "$TARGET_CODEX" == true ]] && uninstall_codex
     [[ "$TARGET_CLAUDE" == true ]] && uninstall_claude
     [[ "$TARGET_CURSOR" == true ]] && uninstall_cursor "$CURSOR_WORKSPACE"
@@ -431,8 +455,9 @@ case "$command" in
     ;;
   export)
     require_macos
-    MODE="${1:-off}"
+    MODE="${1:-on}"
     [[ "$MODE" == "off" || "$MODE" == "on" ]] || die "export mode must be off or on"
+    bash "$ROOT_DIR/scripts/export-codex-skill.sh" "$MODE" >/dev/null
     bash "$ROOT_DIR/scripts/export-plugin.sh" "$MODE" >/dev/null
     bash "$ROOT_DIR/scripts/export-claude-code-skill.sh" "$MODE" >/dev/null
     bash "$ROOT_DIR/scripts/export-cursor-rule.sh" "$MODE" >/dev/null

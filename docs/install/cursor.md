@@ -2,7 +2,7 @@
 
 `Spec Prosecutor` can be installed in Cursor as a mode/rule document.
 
-For hard-gated auto mode, prefer the GitHub/plugin installation path once this repository is published, because that path can include bundled hooks.
+This legacy rule export retains its phrase-based instructions. The former blocking hook is no longer used; the current portable skill is developed and validated for Codex and Claude Code.
 
 ## Modes
 

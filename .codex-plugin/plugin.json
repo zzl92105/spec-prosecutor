@@ -1,7 +1,7 @@
 {
   "name": "spec-prosecutor",
   "version": "0.1.2",
-  "description": "PRD review plugin for engineers before implementation starts.",
+  "description": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
   "author": {
     "name": "len"
   },
@@ -13,21 +13,17 @@
     "skill"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "Spec Prosecutor",
-    "shortDescription": "Audit one Markdown PRD before coding starts.",
-    "longDescription": "Reviews one explicitly provided Markdown PRD from an engineer's perspective and returns a structured prosecutor-style implementation-readiness report.",
+    "shortDescription": "Review PRDs and requirement directories.",
+    "longDescription": "Review PRDs and requirement directories for unclear boundaries, errors and conflicts.",
     "developerName": "len",
     "category": "Productivity",
     "capabilities": [
-      "Interactive",
-      "Write"
+      "Interactive"
     ],
     "defaultPrompt": [
-      "Review this PRD and tell me if engineering can start coding safely.",
-      "Run Spec Prosecutor on this Markdown PRD.",
-      "Audit this requirement doc for ambiguity and missing implementation detail."
+      "Review this PRD or requirements directory and cite unclear boundaries, errors and conflicts."
     ],
     "brandColor": "#991B1B"
   }
